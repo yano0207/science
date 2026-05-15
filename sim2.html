@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>波の干渉シミュレーター</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background: #000; font-family: sans-serif; }
+        #controls {
+            position: absolute; bottom: 0; width: 100%; background: rgba(255, 255, 255, 0.9);
+            padding: 15px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px;
+            border-radius: 20px 20px 0 0;
+        }
+        .row { display: flex; align-items: center; justify-content: space-between; }
+        label { font-size: 14px; font-weight: bold; color: #333; flex: 1; }
+        input[type=range] { flex: 2; margin: 0 10px; }
+        .back-btn {
+            background: #2c3e50; color: white; border: none; padding: 10px;
+            border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="controls">
+    <div class="row">
+        <label>波長</label>
+        <input type="range" id="wavelength" min="10" max="100" value="40">
+    </div>
+    <div class="row">
+        <label>波源の間隔</label>
+        <input type="range" id="distance" min="20" max="200" value="80">
+    </div>
+    <button class="back-btn" onclick="location.href='index.html'">メニューへ戻る</button>
+</div>
+
+<script>
+    let wavelengthSlider, distanceSlider;
+    let t = 0;
+
+    function setup() {
+        // スマホの画面サイズに合わせる（操作パネル分を引く）
+        createCanvas(windowWidth, windowHeight - 140);
+        pixelDensity(1); 
+        wavelengthSlider = document.getElementById('wavelength');
+        distanceSlider = document.getElementById('distance');
+    }
+
+    function draw() {
+        loadPixels();
+        const w = parseFloat(wavelengthSlider.value);
+        const d = parseFloat(distanceSlider.value);
+        const k = TWO_PI / w; // 波数
+        const speed = 0.1; // 波の速さ
+        
+        // 2つの波源の座標
+        const s1x = width / 2 - d / 2;
+        const s1y = height / 2;
+        const s2x = width / 2 + d / 2;
+        const s2y = height / 2;
+
+        for (let y = 0; y < height; y += 2) { // 負荷軽減のため2ピクセル飛ばし
+            for (let x = 0; x < width; x += 2) {
+                const r1 = dist(x, y, s1x, s1y);
+                const r2 = dist(x, y, s2x, s2y);
+                
+                // 波の重ね合わせ y = A sin(kr - wt)
+                const val1 = sin(k * r1 - t);
+                const val2 = sin(k * r2 - t);
+                const amplitude = (val1 + val2) / 2; // -1から1の範囲
+
+                // 色の決定（強め合うところを明るく、弱め合うところを暗く）
+                const c = map(amplitude, -1, 1, 0, 255);
+                
+                // 2x2のブロックを塗る
+                const pix = (x + y * width) * 4;
+                pixels[pix] = c * 0.5;     // R
+                pixels[pix + 1] = c;       // G
+                pixels[pix + 2] = c * 0.8; // B
+                pixels[pix + 3] = 255;     // A
+                
+                // 隣のピクセルも（簡易描画）
+                pixels[pix + 4] = c * 0.5;
+                pixels[pix + 5] = c;
+                pixels[pix + 6] = c * 0.8;
+                pixels[pix + 7] = 255;
+            }
+        }
+        updatePixels();
+        t += speed;
+    }
+
+    function windowResized() {
+        resizeCanvas(windowWidth, windowHeight - 140);
+    }
+</script>
+
+</body>
+</html>
