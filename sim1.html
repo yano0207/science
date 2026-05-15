@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自由落下シミュレーション</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; margin: 0; background: #f0f4f8; display: flex; flex-direction: column; height: 100vh; }
+        header { background: #2c3e50; color: white; padding: 10px; text-align: center; font-size: 1.2rem; }
+        #container { display: flex; flex: 1; overflow: hidden; flex-direction: column; }
+        
+        /* シミュレーションエリア */
+        #canvas-container { flex: 1; position: relative; background: white; border-bottom: 2px solid #ddd; overflow: hidden; }
+        #ball { width: 40px; height: 40px; background: radial-gradient(circle at 30% 30%, #ff5f6d, #ffc371); 
+                border-radius: 50%; position: absolute; left: 50%; transform: translateX(-50%); top: 0; }
+        
+        /* グラフ・操作エリア */
+        #ui-panel { background: white; padding: 15px; height: 300px; display: flex; flex-direction: column; gap: 10px; }
+        .controls { display: flex; justify-content: center; gap: 10px; }
+        button { padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 1rem; }
+        .start-btn { background: #27ae60; color: white; }
+        .reset-btn { background: #e74c3c; color: white; }
+        .back-btn { background: #95a5a6; color: white; }
+        
+        #stats { display: flex; justify-content: space-around; font-size: 0.9rem; font-weight: bold; color: #2c3e50; }
+        canvas { max-height: 150px; }
+    </style>
+</head>
+<body>
+
+<header>自由落下シミュレーション</header>
+
+<div id="container">
+    <div id="canvas-container">
+        <div id="ball"></div>
+    </div>
+
+    <div id="ui-panel">
+        <div id="stats">
+            <div>時間: <span id="time-val">0.00</span> s</div>
+            <div>速度: <span id="velo-val">0.0</span> m/s</div>
+            <div>距離: <span id="dist-val">0.0</span> m</div>
+        </div>
+        
+        <canvas id="velocityChart"></canvas>
+
+        <div class="controls">
+            <button class="start-btn" onclick="startSim()">スタート</button>
+            <button class="reset-btn" onclick="resetSim()">リセット</button>
+            <button class="back-btn" onclick="location.href='index.html'">戻る</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let startTime, animationId;
+    let running = false;
+    const g = 9.8; // 重力加速度
+    const ball = document.getElementById('ball');
+    const timeDisp = document.getElementById('time-val');
+    const veloDisp = document.getElementById('velo-val');
+    const distDisp = document.getElementById('dist-val');
+
+    // Chart.js の設定
+    const ctx = document.getElementById('velocityChart').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: '速度 v (m/s)',
+                data: [],
+                borderColor: '#3498db',
+                borderWidth: 2,
+                fill: false,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { title: { display: true, text: '時間 t (s)' } },
+                y: { beginAtZero: true, title: { display: true, text: '速度 v' } }
+            }
+        }
+    });
+
+    function startSim() {
+        if (running) return;
+        running = true;
+        startTime = performance.now();
+        animate();
+    }
+
+    function animate() {
+        if (!running) return;
+        
+        let now = performance.now();
+        let t = (now - startTime) / 1000; // 秒単位
+        
+        let v = g * t;
+        let y = 0.5 * g * t * t;
+
+        // ボールの位置更新 (ピクセル換算、適当に10倍)
+        let visualY = y * 50; 
+        if (visualY > document.getElementById('canvas-container').clientHeight - 40) {
+            visualY = document.getElementById('canvas-container').clientHeight - 40;
+            running = false;
+        }
+        ball.style.top = visualY + 'px';
+
+        // 数値表示
+        timeDisp.innerText = t.toFixed(2);
+        veloDisp.innerText = v.toFixed(1);
+        distDisp.innerText = y.toFixed(1);
+
+        // グラフ更新
+        if (chart.data.labels.length < 100) {
+            chart.data.labels.push(t.toFixed(1));
+            chart.data.datasets[0].data.push(v);
+            chart.update('none');
+        }
+
+        animationId = requestAnimationFrame(animate);
+    }
+
+    function resetSim() {
+        running = false;
+        cancelAnimationFrame(animationId);
+        ball.style.top = '0px';
+        timeDisp.innerText = '0.00';
+        veloDisp.innerText = '0.0';
+        distDisp.innerText = '0.0';
+        chart.data.labels = [];
+        chart.data.datasets[0].data = [];
+        chart.update();
+    }
+</script>
+
+</body>
+</html>
