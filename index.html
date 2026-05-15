@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Science Lab Online | 高校科学シミュレーション</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            width: 100%;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, var(--primary-color), #4ca1af);
+            color: white;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            letter-spacing: 2px;
+        }
+
+        header p {
+            margin: 10px 0 0;
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 600px;
+            padding: 30px 0;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 20px;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+            border-left: 5px solid var(--accent-color);
+        }
+
+        .card:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .icon {
+            font-size: 2.5rem;
+            margin-right: 20px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .content h2 {
+            margin: 0;
+            font-size: 1.2rem;
+            color: var(--primary-color);
+        }
+
+        .content p {
+            margin: 5px 0 0;
+            font-size: 0.85rem;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        footer {
+            margin-top: auto;
+            padding: 30px;
+            font-size: 0.8rem;
+            color: #999;
+        }
+
+        /* バッジ（NEWなどの表示用） */
+        .badge {
+            background: #e74c3c;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Science Lab Online</h1>
+    <p>実験を、手のひらで再現しよう。</p>
+</header>
+
+<div class="container">
+    <div class="grid">
+        
+        <a href="crystal.html" class="card">
+            <div class="icon">💎</div>
+            <div class="content">
+                <h2>結晶構造 <span class="badge">NEW</span></h2>
+                <p>体心・面心立方格子の構造を3Dで自由に回転させて観察します。</p>
+            </div>
+        </a>
+
+        <a href="sim1.html" class="card">
+            <div class="icon">🍎</div>
+            <div class="content">
+                <h2>自由落下</h2>
+                <p>重力による物体の運動と、時間・速度・距離の関係をグラフ化します。</p>
+            </div>
+        </a>
+
+        <a href="sim2.html" class="card">
+            <div class="icon">🌊</div>
+            <div class="content">
+                <h2>波の干渉</h2>
+                <p>2つの波源から出る波が重なり合い、強め合う・弱め合う様子を可視化します。</p>
+            </div>
+        </a>
+
+        <a href="sim3.html" class="card">
+            <div class="icon">🧪</div>
+            <div class="content">
+                <h2>中和滴定</h2>
+                <p>pHの変化をシミュレートし、滴定曲線と指示薬の色変化を学びます。</p>
+            </div>
+        </a>
+
+    </div>
+</div>
+
+<footer>
+    &copy; 2026 Science Class Virtual Lab
+</footer>
+
+</body>
+</html>
