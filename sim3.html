@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中和滴定シミュレーター</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; margin: 0; background: #fdfdfd; display: flex; flex-direction: column; height: 100vh; color: #333; }
+        header { background: #8e44ad; color: white; padding: 10px; text-align: center; }
+        #main { flex: 1; display: flex; flex-direction: column; padding: 10px; gap: 10px; overflow-y: auto; }
+        
+        /* 装置のビジュアル */
+        #lab-view { height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff; border: 1px solid #ddd; border-radius: 10px; position: relative; }
+        #flask { width: 60px; height: 80px; border: 3px solid #777; border-top: none; border-radius: 0 0 20px 20px; position: relative; background: #fff; transition: background 0.3s; }
+        #liquid { position: absolute; bottom: 0; width: 100%; height: 60%; background: rgba(200, 200, 200, 0.2); border-radius: 0 0 17px 17px; transition: background 0.5s; }
+        #burette { width: 10px; height: 60px; background: #eee; border: 2px solid #777; margin-bottom: 5px; }
+
+        /* グラフエリア */
+        #chart-container { height: 220px; background: white; }
+        
+        /* 操作エリア */
+        #controls { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .stats { display: flex; justify-content: space-around; margin-bottom: 10px; font-weight: bold; font-size: 1.1rem; }
+        .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        button { padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .drop-btn { background: #3498db; color: white; }
+        .reset-btn { background: #95a5a6; color: white; }
+        .back-btn { background: #34495e; color: white; grid-column: span 2; }
+        #ph-val { color: #e74c3c; }
+    </style>
+</head>
+<body>
+
+<header>中和滴定：強酸 (HCl) × 強塩基 (NaOH)</header>
+
+<div id="main">
+    <div id="lab-view">
+        <div id="burette"></div>
+        <div id="flask"><div id="liquid"></div></div>
+        <div style="font-size: 0.8rem; margin-top: 5px;">コニカルビーカー (HCl + フェノールフタレイン)</div>
+    </div>
+
+    <div id="chart-container">
+        <canvas id="titrationChart"></canvas>
+    </div>
+
+    <div id="controls">
+        <div class="stats">
+            <div>滴下量: <span id="volume-val">0.0</span> mL</div>
+            <div>pH: <span id="ph-val">1.00</span></div>
+        </div>
+        <div class="buttons">
+            <button class="drop-btn" onclick="addDrop(0.5)">0.5mL 滴下</button>
+            <button class="drop-btn" onclick="addDrop(0.1)" style="background:#2980b9">0.1mL ずつ微調整</button>
+            <button class="reset-btn" onclick="resetSim()">リセット</button>
+            <button class="back-btn" onclick="location.href='index.html'">メニューへ戻る</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let volume = 0;
+    const initialAcidVol = 10; // 10mLのHCl
+    const acidConc = 0.1;      // 0.1mol/L
+    const baseConc = 0.1;      // 0.1mol/L NaOH
+
+    const ctx = document.getElementById('titrationChart').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [0],
+            datasets: [{
+                label: 'pH',
+                data: [1.00],
+                borderColor: '#8e44ad',
+                tension: 0.3,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { title: { display: true, text: '滴下量 (mL)' }, min: 0, max: 20 },
+                y: { title: { display: true, text: 'pH' }, min: 0, max: 14 }
+            }
+        }
+    });
+
+    function calculatePH(v) {
+        let molAcid = acidConc * (initialAcidVol / 1000);
+        let molBase = baseConc * (v / 1000);
+        let totalVol = (initialAcidVol + v) / 1000;
+        
+        if (molAcid > molBase) {
+            let hPlus = (molAcid - molBase) / totalVol;
+            return -Math.log10(hPlus);
+        } else if (molAcid < molBase) {
+            let ohMinus = (molBase - molAcid) / totalVol;
+            let pOH = -Math.log10(ohMinus);
+            return 14 - pOH;
+        } else {
+            return 7.0;
+        }
+    }
+
+    function addDrop(amt) {
+        volume = Math.round((volume + amt) * 10) / 10;
+        let ph = calculatePH(volume);
+        
+        // UI更新
+        document.getElementById('volume-val').innerText = volume.toFixed(1);
+        document.getElementById('ph-val').innerText = ph.toFixed(2);
+        
+        // 色の変化（フェノールフタレイン：pH 8.3〜10で赤紫）
+        const liquid = document.getElementById('liquid');
+        if (ph < 8.3) {
+            liquid.style.background = "rgba(200, 200, 200, 0.2)";
+        } else {
+            let intensity = Math.min((ph - 8.3) / 1.7, 1.0);
+            liquid.style.background = `rgba(255, 0, 128, ${intensity * 0.6 + 0.1})`;
+        }
+
+        // グラフ更新
+        chart.data.labels.push(volume);
+        chart.data.datasets[0].data.push(ph);
+        chart.update();
+    }
+
+    function resetSim() {
+        volume = 0;
+        document.getElementById('volume-val').innerText = "0.0";
+        document.getElementById('ph-val').innerText = "1.00";
+        document.getElementById('liquid').style.background = "rgba(200, 200, 200, 0.2)";
+        chart.data.labels = [0];
+        chart.data.datasets[0].data = [1.00];
+        chart.update();
+    }
+</script>
+
+</body>
+</html>
