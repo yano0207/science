@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>【高校化学】鉄の強度と炭素の役割シミュレーター</title>
+    <title>【高校化学】鉄と鋼のミクロシミュレーター</title>
     <style>
         :root {
             --iron-color: #3b82f6;
@@ -45,8 +45,30 @@
             transition: background 0.1s;
         }
         .btn-back:active { background: #d1d5db; }
-        h1 { font-size: 15px; font-weight: bold; color: #374151; }
+        h1 { font-size: 14px; font-weight: bold; color: #6b7280; }
         
+        /* 金属の種類を大きく表示するサイン */
+        .material-badge {
+            text-align: center;
+            font-size: 26px;
+            font-weight: 900;
+            padding: 10px;
+            margin-bottom: 12px;
+            border-radius: 12px;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+        }
+        .type-iron {
+            background: #eff6ff;
+            color: #1e40af;
+            border: 2px solid #bfdbfe;
+        }
+        .type-steel {
+            background: #fff1f2;
+            color: #9f1239;
+            border: 2px solid #fecdd3;
+        }
+
         .canvas-box {
             background: #fafafa;
             border: 1px solid #e5e7eb;
@@ -135,12 +157,17 @@
         .stat-title { color: #6b7280; font-size: 11px; margin-bottom: 2px; }
         .stat-num { font-size: 16px; font-weight: bold; }
 
+        /* 生徒向けの解説デザイン */
         .desc {
-            font-size: 11px;
-            color: #6b7280;
-            line-height: 1.4;
-            border-top: 1px solid #e5e7eb;
-            padding-top: 8px;
+            font-size: 13px;
+            color: #374151;
+            line-height: 1.6;
+            border-top: 2px solid #e5e7eb;
+            padding-top: 12px;
+        }
+        .desc strong {
+            color: #111827;
+            background: linear-gradient(transparent 60%, #fde047 60%);
         }
     </style>
 </head>
@@ -149,8 +176,10 @@
 <div class="app-container">
     <div class="header">
         <a href="index.html" class="btn-back">← 戻る</a>
-        <h1>鉄と炭素のミクロシミュレーション</h1>
+        <h1>ミクロの世界から見る金属の科学</h1>
     </div>
+
+    <div id="materialBadge" class="material-badge type-iron">鉄</div>
 
     <div class="canvas-box">
         <canvas id="crystalCanvas" width="500" height="260"></canvas>
@@ -164,11 +193,11 @@
 
     <div class="grid-stats">
         <div class="stat-card">
-            <div class="stat-title">ズレ始める限界の力（降伏点）</div>
+            <div class="stat-title">変形に耐えられる限界の力</div>
             <div id="maxForceVal" class="stat-num">30</div>
         </div>
         <div class="stat-card">
-            <div class="stat-title">現在の変形（永久ひずみ）</div>
+            <div class="stat-title">現在のズレ（永久ひずみ）</div>
             <div id="deformationVal" class="stat-num">0%</div>
         </div>
     </div>
@@ -177,14 +206,14 @@
         <div class="slider-group">
             <div class="slider-label">
                 <span>炭素（C）の量:</span>
-                <span id="carbonVal" class="val-display val-carbon">0.0% (純鉄)</span>
+                <span id="carbonVal" class="val-display val-carbon">なし (純鉄)</span>
             </div>
             <input type="range" id="carbonSlider" class="carbon-slider" min="0" max="2" value="0" step="1">
         </div>
 
         <div class="slider-group">
             <div class="slider-label">
-                <span>加える外力（せん断力）:</span>
+                <span>加える力（外力）:</span>
                 <span id="forceVal" class="val-display val-iron">0</span>
             </div>
             <input type="range" id="forceSlider" min="0" max="100" value="0" step="1">
@@ -192,9 +221,9 @@
     </div>
 
     <div class="desc">
-        <strong>【授業での着目ポイント】</strong><br>
-        1. 炭素を入れると、周囲の鉄原子が押し広げられて配列が「ひずむ」様子を確認させます。<br>
-        2. 外力を大きくしたとき、純鉄は小さな力で上の層が滑りますが、炭素があるとそれが「ストッパー（ピン留め効果）」になり、強い力まで耐えられる（＝硬くなる）ことがグラフの折れ曲がり点の移動から視覚的に学べます。
+        <strong>💡 なぜ炭素が入ると硬くなるの？</strong><br>
+        炭素を加えていない単なる「鉄」のときは、青い鉄原子が綺麗に並んでいるため、上から力をかけると<strong>原子の層がずるっと簡単に滑って変形</strong>してしまいます。<br><br>
+        しかし、炭素を加えることで「鋼（スチール）」に変化させると、鉄原子の隙間に小さな炭素原子（赤い丸）が割り込みます。この炭素が、綺麗だった並びをあえて<strong>グイッと歪ませることで「ストッパー」の役割</strong>を果たし、原子の層が滑るのを強力にブロックします。下のグラフの「限界点」が右に移動し、より強い力に耐えられるようになる様子を確かめてみましょう！
     </div>
 </div>
 
@@ -207,6 +236,7 @@
     const carbonSlider = document.getElementById('carbonSlider');
     const forceSlider = document.getElementById('forceSlider');
 
+    const materialBadge = document.getElementById('materialBadge');
     const carbonVal = document.getElementById('carbonVal');
     const forceVal = document.getElementById('forceVal');
     const statusBar = document.getElementById('statusBar');
@@ -225,14 +255,24 @@
         const carbonCount = parseInt(carbonSlider.value);
         const force = parseInt(forceSlider.value);
         
-        // 炭素数に応じた特性値の設定
-        let carbonPercent = "0.0% (純鉄)";
-        let limit = 30; // ズレ始める限界の力
-        if (carbonCount === 1) {
-            carbonPercent = "0.2% (低炭素鋼)";
+        // 炭素数に応じた「鉄」と「鋼（スチール）」の切り替え処理
+        let carbonPercent = "なし (純鉄)";
+        let limit = 30; 
+        
+        if (carbonCount === 0) {
+            materialBadge.innerText = "鉄";
+            materialBadge.className = "material-badge type-iron";
+            carbonPercent = "なし (純鉄)";
+            limit = 30;
+        } else if (carbonCount === 1) {
+            materialBadge.innerText = "鋼（スチール）";
+            materialBadge.className = "material-badge type-steel";
+            carbonPercent = "少し（低炭素鋼）";
             limit = 60;
         } else if (carbonCount === 2) {
-            carbonPercent = "0.6% (高炭素鋼)";
+            materialBadge.innerText = "鋼（スチール）";
+            materialBadge.className = "material-badge type-steel";
+            carbonPercent = "多め（高炭素鋼）";
             limit = 85;
         }
         
@@ -245,15 +285,15 @@
         let isPlastic = false;
         
         if (force <= limit) {
-            shiftX = force * 0.15; // わずかな弾性変形
+            shiftX = force * 0.15; 
             statusBar.className = "status-bar status-elastic";
-            statusBar.innerText = "状態: 弾性変形（力を抜くと元に戻る状態）";
+            statusBar.innerText = "状態: まだ大丈夫（力を抜けば元に戻る）";
             deformationVal.innerText = "0%";
         } else {
-            shiftX = (limit * 0.15) + (force - limit) * 2.5; // 限界突破（塑性変形・結晶のすべり）
+            shiftX = (limit * 0.15) + (force - limit) * 2.5; 
             isPlastic = true;
             statusBar.className = "status-bar status-plastic";
-            statusBar.innerText = "状態: 塑性変形（原子の層がすべり、永久変形！）";
+            statusBar.innerText = "状態: 限界突破！原子の層がズレて変形しました";
             deformationVal.innerText = Math.min(100, Math.round((force - limit) * 6)) + "%";
         }
 
@@ -265,7 +305,7 @@
         // 1. 結晶格子の描画
         // ==========================================
         
-        // すべり面の境界線 (y=1 と y=2 の間)
+        // すべり面の境界線
         const slipY = START_Y - 1.5 * STEP;
         ctxC.strokeStyle = isPlastic ? '#ef4444' : '#9ca3af';
         ctxC.lineWidth = isPlastic ? 3 : 1.5;
@@ -278,7 +318,7 @@
         
         ctxC.fillStyle = isPlastic ? '#ef4444' : '#6b7280';
         ctxC.font = 'bold 11px sans-serif';
-        ctxC.fillText(isPlastic ? 'すべり面 ［原子の層がズレています］' : 'すべり面（原子の層の境界）', 25, slipY - 6);
+        ctxC.fillText(isPlastic ? 'すべり面 ［原子の層が滑っています］' : 'すべり面（原子の層の境界線）', 25, slipY - 6);
 
         // 加える外力の矢印
         if (force > 0) {
@@ -297,17 +337,15 @@
             ctxC.lineTo(30 + force * 0.8, arrowY + 6);
             ctxC.fill();
             ctxC.font = 'bold 11px sans-serif';
-            ctxC.fillText('外力（せん断力）', 30, arrowY - 10);
+            ctxC.fillText('加える力', 30, arrowY - 10);
         }
 
-        // 初期位置としての鉄原子配列の生成
+        // 鉄原子配列の生成
         let ironAtoms = [];
         for (let y = 0; y < ROWS; y++) {
             for (let x = 0; x < COLS; x++) {
                 let cx = START_X + x * STEP;
                 let cy = START_Y - y * STEP;
-                
-                // すべり面より上の層（y >= 2）に外力によるズレ（変形）を適用
                 if (y >= 2) {
                     cx += shiftX;
                 }
@@ -317,29 +355,27 @@
         
         // 炭素原子の配置
         let carbons = [];
-        if (carbonCount >= 1) carbons.push({gridX: 1.5, gridY: 1.5}); // すべり面上の隙間
-        if (carbonCount >= 2) carbons.push({gridX: 3.5, gridY: 2.5}); // 上の層の内部の隙間
+        if (carbonCount >= 1) carbons.push({gridX: 1.5, gridY: 1.5}); 
+        if (carbonCount >= 2) carbons.push({gridX: 3.5, gridY: 2.5}); 
         
-        // 炭素による周囲の鉄原子の押し広げ（ひずみ）の計算
+        // ひずみの計算
         carbons.forEach(c => {
             let ccx = START_X + c.gridX * STEP;
             let ccy = START_Y - c.gridY * STEP;
             
-            // 炭素原子自身も、属する層に合わせて移動
             if (c.gridY === 1.5) {
-                ccx += shiftX * 0.5; // すべり面上の炭素は中間の挙動をする（ここで引っかかるビジュアル）
+                ccx += shiftX * 0.5; 
             } else if (c.gridY >= 2) {
                 ccx += shiftX;
             }
             c.actualX = ccx;
             c.actualY = ccy;
             
-            // 周囲4つの鉄原子を押し広げて配列を歪ませる
             ironAtoms.forEach(atom => {
                 const dx = atom.col - c.gridX;
                 const dy = atom.row - c.gridY;
                 if (Math.abs(dx) === 0.5 && Math.abs(dy) === 0.5) {
-                    const pushDist = 8; // 押し出すピクセル数
+                    const pushDist = 8; 
                     atom.x += Math.sign(dx) * pushDist;
                     atom.y -= Math.sign(dy) * pushDist; 
                 }
@@ -355,23 +391,15 @@
             ctxC.strokeStyle = '#1e40af';
             ctxC.lineWidth = 1.5;
             ctxC.stroke();
-            
-            // 中心の格子点
-            ctxC.beginPath();
-            ctxC.arc(atom.x, atom.y, 2, 0, Math.PI * 2);
-            ctxC.fillStyle = '#1e40af';
-            ctxC.fill();
         });
         
         // 炭素原子の描画
         carbons.forEach(c => {
-            // 周囲に発生する「ひずみ領域」を可視化
             ctxC.beginPath();
-            ctxC.arc(c.actualX, c.actualY, ATOM_RADIUS * 1.5, 0, Math.PI * 2);
-            ctxC.fillStyle = 'rgba(239, 68, 68, 0.15)';
+            ctxC.arc(c.actualX, c.actualY, ATOM_RADIUS * 1.4, 0, Math.PI * 2);
+            ctxC.fillStyle = 'rgba(239, 68, 68, 0.18)';
             ctxC.fill();
             
-            // 炭素原子本体
             ctxC.beginPath();
             ctxC.arc(c.actualX, c.actualY, ATOM_RADIUS * 0.5, 0, Math.PI * 2);
             ctxC.fillStyle = '#ef4444';
@@ -390,14 +418,13 @@
         ctxC.textBaseline = 'alphabetic';
 
         // ==========================================
-        // 2. リアルタイムグラフの描画 (外力 vs 変形量)
+        // 2. リアルタイムグラフの描画
         // ==========================================
         const gLeft = 50;
         const gRight = 450;
         const gTop = 20;
         const gBottom = 110;
         
-        // 軸
         ctxG.strokeStyle = '#4b5563';
         ctxG.lineWidth = 1.5;
         ctxG.beginPath();
@@ -406,18 +433,16 @@
         ctxG.lineTo(gRight + 5, gBottom);
         ctxG.stroke();
         
-        // 軸ラベル
         ctxG.fillStyle = '#4b5563';
         ctxG.font = '10px sans-serif';
-        ctxG.fillText('加えた外力 →', gRight - 50, gBottom + 15);
+        ctxG.fillText('加えた力 →', gRight - 50, gBottom + 15);
         
         ctxG.save();
-        ctxG.translate(gLeft - 15, gTop + 45);
+        ctxG.translate(gLeft - 15, gTop + 40);
         ctxG.rotate(-Math.PI / 2);
-        ctxG.fillText('原子のズレ（変形量） →', 0, 0);
+        ctxG.fillText('結晶のズレ（変形量） →', 0, 0);
         ctxG.restore();
         
-        // 選択されている材料の「外力-変形曲線」をうっすら描画
         ctxG.strokeStyle = '#cbd5e1';
         ctxG.lineWidth = 2;
         ctxG.beginPath();
@@ -435,7 +460,6 @@
         }
         ctxG.stroke();
         
-        // 降伏点（限界値）の赤丸マーカー
         const lx = gLeft + (limit / 100) * (gRight - gLeft);
         const ly = gBottom - (Math.min(100, (limit * 0.15) * 1.3) / 100) * (gBottom - gTop);
         ctxG.beginPath();
@@ -443,9 +467,8 @@
         ctxG.fillStyle = '#ef4444';
         ctxG.fill();
         ctxG.font = 'bold 9px sans-serif';
-        ctxG.fillText(`ズレ始める限界点 (${limit})`, lx - 40, ly - 8);
+        ctxG.fillText(`耐えられる限界 (${limit})`, lx - 40, ly - 8);
 
-        // 現在の外力・変形の位置をリアルタイムにプロット
         const curX = gLeft + (force / 100) * (gRight - gLeft);
         const curY = gBottom - (Math.min(100, shiftX * 1.3) / 100) * (gBottom - gTop);
         ctxG.beginPath();
@@ -457,11 +480,9 @@
         ctxG.stroke();
     }
 
-    // 操作イベントの登録（スマホのタッチ移動、PCのクリックドラッグ両対応）
     carbonSlider.addEventListener('input', update);
     forceSlider.addEventListener('input', update);
 
-    // 初期描画
     update();
 </script>
 
