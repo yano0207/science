@@ -449,4 +449,34 @@
         ctxG.strokeStyle = '#cbd5e1'; ctxG.lineWidth = 2;
         ctxG.beginPath();
         for(let f=0; f<=100; f++) {
-            let
+            let sx = f <= limit ? f * 0.15 : (limit * 0.15) + (f - limit) * 2.5;
+            const gx = gLeft + (f / 100) * (gRight - gLeft);
+            const gy = gBottom - (Math.min(100, sx * 1.3) / 100) * (gBottom - gTop);
+            if (f === 0) ctxG.moveTo(gx, gy); else ctxG.lineTo(gx, gy);
+        }
+        ctxG.stroke();
+        
+        // 限界点マーカー
+        const lx = gLeft + (limit / 100) * (gRight - gLeft);
+        const ly = gBottom - (Math.min(100, (limit * 0.15) * 1.3) / 100) * (gBottom - gTop);
+        ctxG.beginPath(); ctxG.arc(lx, ly, 4, 0, Math.PI * 2);
+        ctxG.fillStyle = '#ef4444'; ctxG.fill();
+        ctxG.font = 'bold 9px sans-serif';
+        ctxG.fillText(`耐えられる限界 (${limit})`, lx - 40, ly - 8);
+
+        // 現在位置
+        const curX = gLeft + (force / 100) * (gRight - gLeft);
+        const curY = gBottom - (Math.min(100, shiftX * 1.3) / 100) * (gBottom - gTop);
+        ctxG.beginPath(); ctxG.arc(curX, curY, 6, 0, Math.PI * 2);
+        ctxG.fillStyle = '#3b82f6'; ctxG.fill();
+        ctxG.strokeStyle = '#ffffff'; ctxG.lineWidth = 2; ctxG.stroke();
+    }
+
+    carbonSlider.addEventListener('input', update);
+    forceSlider.addEventListener('input', update);
+
+    update();
+</script>
+
+</body>
+</html>
