@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>【高校化学】鉄と鋼のミクロシミュレーター</title>
+    <title>【高校化学】鉄・鋼の熱処理シミュレーター</title>
     <style>
         :root {
             --iron-color: #3b82f6;
@@ -42,32 +42,24 @@
             border-radius: 8px;
             font-size: 14px;
             font-weight: bold;
-            transition: background 0.1s;
         }
         .btn-back:active { background: #d1d5db; }
-        h1 { font-size: 14px; font-weight: bold; color: #6b7280; }
+        h1 { font-size: 13px; font-weight: bold; color: #6b7280; }
         
-        /* 金属の種類を大きく表示するサイン */
+        /* 金属の種類と状態を表示するサイン */
         .material-badge {
             text-align: center;
-            font-size: 26px;
+            font-size: 22px;
             font-weight: 900;
             padding: 10px;
             margin-bottom: 12px;
             border-radius: 12px;
-            letter-spacing: 2px;
-            transition: all 0.3s ease;
+            letter-spacing: 1px;
         }
-        .type-iron {
-            background: #eff6ff;
-            color: #1e40af;
-            border: 2px solid #bfdbfe;
-        }
-        .type-steel {
-            background: #fff1f2;
-            color: #9f1239;
-            border: 2px solid #fecdd3;
-        }
+        .type-iron { background: #eff6ff; color: #1e40af; border: 2px solid #bfdbfe; }
+        .type-steel-normal { background: #fff1f2; color: #9f1239; border: 2px solid #fecdd3; }
+        .type-steel-quench { background: #f3e8ff; color: #6b21a8; border: 2px solid #e9d5ff; }
+        .type-steel-anneal { background: #fef3c7; color: #92400e; border: 2px solid #fde68a; }
 
         .canvas-box {
             background: #fafafa;
@@ -76,11 +68,7 @@
             overflow: hidden;
             margin-bottom: 10px;
         }
-        canvas {
-            display: block;
-            width: 100%;
-            height: auto;
-        }
+        canvas { display: block; width: 100%; height: auto; }
         
         .controls {
             background: #f9fafb;
@@ -88,26 +76,53 @@
             border-radius: 12px;
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 14px;
             margin-bottom: 12px;
         }
-        .slider-group {
+        .slider-group, .btn-group-container {
             display: flex;
             flex-direction: column;
             gap: 6px;
         }
-        .slider-label {
+        .control-label {
             display: flex;
             justify-content: space-between;
             font-size: 13px;
             font-weight: bold;
             color: #4b5563;
         }
-        .val-display { font-size: 15px; font-weight: bold; }
-        .val-iron { color: var(--iron-color); }
+        .val-display { font-size: 14px; font-weight: bold; }
         .val-carbon { color: var(--carbon-color); }
+        .val-force { color: var(--iron-color); }
+
+        /* スマホ対応：タップしやすい熱処理切り替えボタン */
+        .segmented-control {
+            display: flex;
+            background: #e5e7eb;
+            padding: 4px;
+            border-radius: 10px;
+            gap: 4px;
+        }
+        .segment-btn {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 10px 4px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #4b5563;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: all 0.15s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .segment-btn.active {
+            background: #ffffff;
+            color: #111827;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
         
-        /* スマホ用：タッチしやすい大型スライダー */
+        /* 大型スライダー */
         input[type="range"] {
             -webkit-appearance: none;
             width: 100%;
@@ -124,15 +139,12 @@
             background: white;
             border: 4px solid var(--iron-color);
             box-shadow: 0 3px 8px rgba(0,0,0,0.2);
-            cursor: pointer;
         }
-        input[type="range"].carbon-slider::-webkit-slider-thumb {
-            border-color: var(--carbon-color);
-        }
+        input[type="range"].carbon-slider::-webkit-slider-thumb { border-color: var(--carbon-color); }
         
         .status-bar {
             text-align: center;
-            padding: 10px;
+            padding: 8px;
             border-radius: 8px;
             font-size: 13px;
             font-weight: bold;
@@ -155,9 +167,9 @@
             text-align: center;
         }
         .stat-title { color: #6b7280; font-size: 11px; margin-bottom: 2px; }
-        .stat-num { font-size: 16px; font-weight: bold; }
+        .stat-num { font-size: 15px; font-weight: bold; }
+        .note-text { color: #ef4444; font-size: 11px; font-weight: bold; margin-top: 2px; display: none; }
 
-        /* 生徒向けの解説デザイン */
         .desc {
             font-size: 13px;
             color: #374151;
@@ -176,10 +188,10 @@
 <div class="app-container">
     <div class="header">
         <a href="index.html" class="btn-back">← 戻る</a>
-        <h1>ミクロの世界から見る金属の科学</h1>
+        <h1>金属の科学：熱処理編</h1>
     </div>
 
-    <div id="materialBadge" class="material-badge type-iron">鉄</div>
+    <div id="materialBadge" class="material-badge type-iron">純鉄</div>
 
     <div class="canvas-box">
         <canvas id="crystalCanvas" width="500" height="260"></canvas>
@@ -193,37 +205,52 @@
 
     <div class="grid-stats">
         <div class="stat-card">
-            <div class="stat-title">変形に耐えられる限界の力</div>
+            <div class="stat-title">耐えられる限界の力（硬さ）</div>
             <div id="maxForceVal" class="stat-num">30</div>
+            <div id="ironNote" class="note-text">※純鉄は熱処理が効きません</div>
         </div>
         <div class="stat-card">
-            <div class="stat-title">現在のズレ（永久ひずみ）</div>
+            <div class="stat-title">現在のズレ（永久変形）</div>
             <div id="deformationVal" class="stat-num">0%</div>
         </div>
     </div>
 
     <div class="controls">
         <div class="slider-group">
-            <div class="slider-label">
-                <span>炭素（C）の量:</span>
+            <div class="control-label">
+                <span>材料（炭素の量）:</span>
                 <span id="carbonVal" class="val-display val-carbon">なし (純鉄)</span>
             </div>
-            <input type="range" id="carbonSlider" class="carbon-slider" min="0" max="2" value="0" step="1">
+            <input type="range" id="carbonSlider" class="carbon-slider" min="0" max="1" value="0" step="1">
+        </div>
+
+        <div class="btn-group-container">
+            <div class="control-label">
+                <span>熱処理（加熱した後の冷却スピード）:</span>
+            </div>
+            <div class="segmented-control">
+                <button class="segment-btn active" onclick="setHeatTreat('none')">未処理</button>
+                <button class="segment-btn" onclick="setHeatTreat('anneal')">焼きなまし<br>(ゆっくり冷やす)</button>
+                <button class="segment-btn" onclick="setHeatTreat('quench')">焼き入れ<br>(一気に冷やす)</button>
+            </div>
         </div>
 
         <div class="slider-group">
-            <div class="slider-label">
-                <span>加える力（外力）:</span>
-                <span id="forceVal" class="val-display val-iron">0</span>
+            <div class="control-label">
+                <span>加える力:</span>
+                <span id="forceVal" class="val-display val-force">0</span>
             </div>
             <input type="range" id="forceSlider" min="0" max="100" value="0" step="1">
         </div>
     </div>
 
     <div class="desc">
-        <strong>💡 なぜ炭素が入ると硬くなるの？</strong><br>
-        炭素を加えていない単なる「鉄」のときは、青い鉄原子が綺麗に並んでいるため、上から力をかけると<strong>原子の層がずるっと簡単に滑って変形</strong>してしまいます。<br><br>
-        しかし、炭素を加えることで「鋼（スチール）」に変化させると、鉄原子の隙間に小さな炭素原子（赤い丸）が割り込みます。この炭素が、綺麗だった並びをあえて<strong>グイッと歪ませることで「ストッパー」の役割</strong>を果たし、原子の層が滑るのを強力にブロックします。下のグラフの「限界点」が右に移動し、より強い力に耐えられるようになる様子を確かめてみましょう！
+        <strong>💡 「焼き入れ」「焼きなまし」で何が起きてる？</strong><br>
+        材料を「鋼」にして、熱処理ボタンを切り替えてみましょう！<br>
+        <br>
+        <strong>① 焼き入れ（急冷）：</strong>高温から一瞬で冷やすと、炭素原子（赤）が元の場所に戻れず、鉄の隙間に強引に閉じ込められます。ミクロ画面を見ると<strong>周囲の鉄がパンパンに引っ張られて激しく歪んでいる</strong>のが分かります。これがストッパーとなり、限界の力が「90」まで跳ね上がってガチガチに硬くなります。<br>
+        <br>
+        <strong>② 焼きなまし（徐冷）：</strong>時間をかけてゆっくり冷やすと、原子が落ち着いて並び直すため、<strong>内部のひずみがすっきり消えてリラックス</strong>します。そのため、原子の層がしなやかに滑るようになり、衝撃を吸収する「粘り強さ」が生まれます。
     </div>
 </div>
 
@@ -242,8 +269,10 @@
     const statusBar = document.getElementById('statusBar');
     const maxForceVal = document.getElementById('maxForceVal');
     const deformationVal = document.getElementById('deformationVal');
+    const ironNote = document.getElementById('ironNote');
 
-    // 結晶構造の描画定数
+    let currentHeatTreat = 'none'; // 'none', 'anneal', 'quench'
+
     const ROWS = 5;
     const COLS = 5;
     const ATOM_RADIUS = 18;
@@ -251,240 +280,173 @@
     const START_X = 130;
     const START_Y = 220; 
 
+    function setHeatTreat(type) {
+        currentHeatTreat = type;
+        const buttons = document.querySelectorAll('.segment-btn');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        
+        if(type === 'none') buttons[0].classList.add('active');
+        if(type === 'anneal') buttons[1].classList.add('active');
+        if(type === 'quench') buttons[2].classList.add('active');
+        
+        update();
+    }
+
     function update() {
-        const carbonCount = parseInt(carbonSlider.value);
+        const hasCarbon = parseInt(carbonSlider.value) === 1;
         const force = parseInt(forceSlider.value);
         
-        // 炭素数に応じた「鉄」と「鋼（スチール）」の切り替え処理
-        let carbonPercent = "なし (純鉄)";
         let limit = 30; 
-        
-        if (carbonCount === 0) {
-            materialBadge.innerText = "鉄";
+        let pushDist = 0; // 炭素によるひずみの強さピクセル
+        let glowRadiusFactor = 1.4;
+
+        if (!hasCarbon) {
+            // 純鉄の場合：熱処理は一切効かない（教育的表現）
+            materialBadge.innerText = "純鉄";
             materialBadge.className = "material-badge type-iron";
-            carbonPercent = "なし (純鉄)";
+            carbonVal.innerText = "なし (純鉄)";
             limit = 30;
-        } else if (carbonCount === 1) {
-            materialBadge.innerText = "鋼（スチール）";
-            materialBadge.className = "material-badge type-steel";
-            carbonPercent = "少し（低炭素鋼）";
-            limit = 60;
-        } else if (carbonCount === 2) {
-            materialBadge.innerText = "鋼（スチール）";
-            materialBadge.className = "material-badge type-steel";
-            carbonPercent = "多め（高炭素鋼）";
-            limit = 85;
+            pushDist = 0;
+            ironNote.style.display = "block";
+        } else {
+            // 鋼の場合：熱処理で状態激変
+            ironNote.style.display = "none";
+            carbonVal.innerText = "あり (鋼 / スチール)";
+            
+            if (currentHeatTreat === 'none') {
+                materialBadge.innerText = "鋼（未処理）";
+                materialBadge.className = "material-badge type-steel-normal";
+                limit = 55;
+                pushDist = 7;
+                glowRadiusFactor = 1.4;
+            } else if (currentHeatTreat === 'anneal') {
+                materialBadge.innerText = "鋼（焼きなまし状態）";
+                materialBadge.className = "material-badge type-steel-anneal";
+                limit = 40;
+                pushDist = 2.5; // ひずみが抜けてリラックスしている
+                glowRadiusFactor = 1.1;
+            } else if (currentHeatTreat === 'quench') {
+                materialBadge.innerText = "鋼（焼き入れ状態）";
+                materialBadge.className = "material-badge type-steel-quench";
+                limit = 90; // ガチガチに硬い
+                pushDist = 14; // 激しい格子ひずみ
+                glowRadiusFactor = 1.9; // 突っ張っている領域が広い
+            }
         }
         
-        carbonVal.innerText = carbonPercent;
         forceVal.innerText = force;
         maxForceVal.innerText = limit;
         
-        // 変形（すべり）量の計算
+        // 変形量の計算
         let shiftX = 0;
         let isPlastic = false;
-        
         if (force <= limit) {
             shiftX = force * 0.15; 
             statusBar.className = "status-bar status-elastic";
-            statusBar.innerText = "状態: まだ大丈夫（力を抜けば元に戻る）";
+            statusBar.innerText = "状態: 弾性変形（力を抜けば元に戻る）";
             deformationVal.innerText = "0%";
         } else {
             shiftX = (limit * 0.15) + (force - limit) * 2.5; 
             isPlastic = true;
             statusBar.className = "status-bar status-plastic";
-            statusBar.innerText = "状態: 限界突破！原子の層がズレて変形しました";
+            statusBar.innerText = "状態: 塑性変形（限界突破！永久に変形）";
             deformationVal.innerText = Math.min(100, Math.round((force - limit) * 6)) + "%";
         }
 
-        // 描画クリア
-        ctxC.clearRect(0, 0, crystalCanvas.width, crystalCanvas.height);
-        ctxG.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
-        
         // ==========================================
         // 1. 結晶格子の描画
         // ==========================================
+        ctxC.clearRect(0, 0, crystalCanvas.width, crystalCanvas.height);
         
-        // すべり面の境界線
         const slipY = START_Y - 1.5 * STEP;
         ctxC.strokeStyle = isPlastic ? '#ef4444' : '#9ca3af';
         ctxC.lineWidth = isPlastic ? 3 : 1.5;
         ctxC.setLineDash([6, 4]);
-        ctxC.beginPath();
-        ctxC.moveTo(20, slipY);
-        ctxC.lineTo(480, slipY);
-        ctxC.stroke();
+        ctxC.beginPath(); ctxC.moveTo(20, slipY); ctxC.lineTo(480, slipY); ctxC.stroke();
         ctxC.setLineDash([]);
         
         ctxC.fillStyle = isPlastic ? '#ef4444' : '#6b7280';
         ctxC.font = 'bold 11px sans-serif';
-        ctxC.fillText(isPlastic ? 'すべり面 ［原子の層が滑っています］' : 'すべり面（原子の層の境界線）', 25, slipY - 6);
+        ctxC.fillText(isPlastic ? 'すべり面 ［層がズレました］' : 'すべり面（原子の層の境界）', 25, slipY - 6);
 
-        // 加える外力の矢印
         if (force > 0) {
-            ctxC.strokeStyle = '#3b82f6';
-            ctxC.lineWidth = 4;
-            ctxC.fillStyle = '#3b82f6';
+            ctxC.strokeStyle = '#3b82f6'; ctxC.lineWidth = 4; ctxC.fillStyle = '#3b82f6';
             const arrowY = START_Y - 3.5 * STEP;
-            ctxC.beginPath();
-            ctxC.moveTo(30, arrowY);
-            ctxC.lineTo(30 + force * 0.8, arrowY);
-            ctxC.stroke();
-            
-            ctxC.beginPath();
-            ctxC.moveTo(30 + force * 0.8, arrowY - 6);
-            ctxC.lineTo(38 + force * 0.8, arrowY);
-            ctxC.lineTo(30 + force * 0.8, arrowY + 6);
-            ctxC.fill();
-            ctxC.font = 'bold 11px sans-serif';
+            ctxC.beginPath(); ctxC.moveTo(30, arrowY); ctxC.lineTo(30 + force * 0.8, arrowY); ctxC.stroke();
+            ctxC.beginPath(); ctxC.moveTo(30 + force * 0.8, arrowY - 6); ctxC.lineTo(38 + force * 0.8, arrowY); ctxC.lineTo(30 + force * 0.8, arrowY + 6); ctxC.fill();
             ctxC.fillText('加える力', 30, arrowY - 10);
         }
 
-        // 鉄原子配列の生成
+        // 原子配列生成
         let ironAtoms = [];
         for (let y = 0; y < ROWS; y++) {
             for (let x = 0; x < COLS; x++) {
                 let cx = START_X + x * STEP;
                 let cy = START_Y - y * STEP;
-                if (y >= 2) {
-                    cx += shiftX;
-                }
+                if (y >= 2) cx += shiftX;
                 ironAtoms.push({x: cx, y: cy, row: y, col: x});
             }
         }
         
-        // 炭素原子の配置
         let carbons = [];
-        if (carbonCount >= 1) carbons.push({gridX: 1.5, gridY: 1.5}); 
-        if (carbonCount >= 2) carbons.push({gridX: 3.5, gridY: 2.5}); 
+        if (hasCarbon) {
+            carbons.push({gridX: 1.5, gridY: 1.5}); 
+            carbons.push({gridX: 3.5, gridY: 2.5}); 
+        }
         
-        // ひずみの計算
         carbons.forEach(c => {
             let ccx = START_X + c.gridX * STEP;
             let ccy = START_Y - c.gridY * STEP;
-            
-            if (c.gridY === 1.5) {
-                ccx += shiftX * 0.5; 
-            } else if (c.gridY >= 2) {
-                ccx += shiftX;
-            }
-            c.actualX = ccx;
-            c.actualY = ccy;
+            if (c.gridY === 1.5) ccx += shiftX * 0.5;
+            else if (c.gridY >= 2) ccx += shiftX;
+            c.actualX = ccx; c.actualY = ccy;
             
             ironAtoms.forEach(atom => {
                 const dx = atom.col - c.gridX;
                 const dy = atom.row - c.gridY;
                 if (Math.abs(dx) === 0.5 && Math.abs(dy) === 0.5) {
-                    const pushDist = 8; 
                     atom.x += Math.sign(dx) * pushDist;
                     atom.y -= Math.sign(dy) * pushDist; 
                 }
             });
         });
         
-        // 鉄原子の描画
         ironAtoms.forEach(atom => {
-            ctxC.beginPath();
-            ctxC.arc(atom.x, atom.y, ATOM_RADIUS, 0, Math.PI * 2);
-            ctxC.fillStyle = '#93c5fd';
-            ctxC.fill();
-            ctxC.strokeStyle = '#1e40af';
-            ctxC.lineWidth = 1.5;
-            ctxC.stroke();
+            ctxC.beginPath(); ctxC.arc(atom.x, atom.y, ATOM_RADIUS, 0, Math.PI * 2);
+            ctxC.fillStyle = '#93c5fd'; ctxC.fill();
+            ctxC.strokeStyle = '#1e40af'; ctxC.lineWidth = 1.5; ctxC.stroke();
         });
         
-        // 炭素原子の描画
         carbons.forEach(c => {
-            ctxC.beginPath();
-            ctxC.arc(c.actualX, c.actualY, ATOM_RADIUS * 1.4, 0, Math.PI * 2);
-            ctxC.fillStyle = 'rgba(239, 68, 68, 0.18)';
+            ctxC.beginPath(); ctxC.arc(c.actualX, c.actualY, ATOM_RADIUS * glowRadiusFactor, 0, Math.PI * 2);
+            ctxC.fillStyle = currentHeatTreat === 'quench' ? 'rgba(147, 51, 234, 0.2)' : 'rgba(239, 68, 68, 0.18)';
             ctxC.fill();
             
-            ctxC.beginPath();
-            ctxC.arc(c.actualX, c.actualY, ATOM_RADIUS * 0.5, 0, Math.PI * 2);
-            ctxC.fillStyle = '#ef4444';
-            ctxC.fill();
-            ctxC.strokeStyle = '#b91c1c';
-            ctxC.lineWidth = 1.5;
-            ctxC.stroke();
+            ctxC.beginPath(); ctxC.arc(c.actualX, c.actualY, ATOM_RADIUS * 0.5, 0, Math.PI * 2);
+            ctxC.fillStyle = '#ef4444'; ctxC.fill();
+            ctxC.strokeStyle = '#b91c1c'; ctxC.lineWidth = 1.5; ctxC.stroke();
             
-            ctxC.fillStyle = '#ffffff';
-            ctxC.font = 'bold 9px sans-serif';
-            ctxC.textAlign = 'center';
-            ctxC.textBaseline = 'middle';
+            ctxC.fillStyle = '#ffffff'; ctxC.font = 'bold 9px sans-serif'; ctxC.textAlign = 'center'; ctxC.textBaseline = 'middle';
             ctxC.fillText('C', c.actualX, c.actualY);
         });
-        ctxC.textAlign = 'left'; 
-        ctxC.textBaseline = 'alphabetic';
+        ctxC.textAlign = 'left'; ctxC.textBaseline = 'alphabetic';
 
         // ==========================================
-        // 2. リアルタイムグラフの描画
+        // 2. グラフの描画
         // ==========================================
-        const gLeft = 50;
-        const gRight = 450;
-        const gTop = 20;
-        const gBottom = 110;
+        ctxG.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
+        const gLeft = 50, gRight = 450, gTop = 20, gBottom = 110;
         
-        ctxG.strokeStyle = '#4b5563';
-        ctxG.lineWidth = 1.5;
-        ctxG.beginPath();
-        ctxG.moveTo(gLeft, gTop - 5);
-        ctxG.lineTo(gLeft, gBottom);
-        ctxG.lineTo(gRight + 5, gBottom);
-        ctxG.stroke();
-        
-        ctxG.fillStyle = '#4b5563';
-        ctxG.font = '10px sans-serif';
+        ctxG.strokeStyle = '#4b5563'; ctxG.lineWidth = 1.5;
+        ctxG.beginPath(); ctxG.moveTo(gLeft, gTop - 5); ctxG.lineTo(gLeft, gBottom); ctxG.lineTo(gRight + 5, gBottom); ctxG.stroke();
+        ctxG.fillStyle = '#4b5563'; ctxG.font = '10px sans-serif';
         ctxG.fillText('加えた力 →', gRight - 50, gBottom + 15);
         
-        ctxG.save();
-        ctxG.translate(gLeft - 15, gTop + 40);
-        ctxG.rotate(-Math.PI / 2);
-        ctxG.fillText('結晶のズレ（変形量） →', 0, 0);
-        ctxG.restore();
+        ctxG.save(); ctxG.translate(gLeft - 15, gTop + 40); ctxG.rotate(-Math.PI / 2);
+        ctxG.fillText('結晶のズレ（変形） →', 0, 0); ctxG.restore();
         
-        ctxG.strokeStyle = '#cbd5e1';
-        ctxG.lineWidth = 2;
+        // 曲線
+        ctxG.strokeStyle = '#cbd5e1'; ctxG.lineWidth = 2;
         ctxG.beginPath();
         for(let f=0; f<=100; f++) {
-            let sx = 0;
-            if (f <= limit) {
-                sx = f * 0.15;
-            } else {
-                sx = (limit * 0.15) + (f - limit) * 2.5;
-            }
-            const gx = gLeft + (f / 100) * (gRight - gLeft);
-            const gy = gBottom - (Math.min(100, sx * 1.3) / 100) * (gBottom - gTop);
-            if (f === 0) ctxG.moveTo(gx, gy);
-            else ctxG.lineTo(gx, gy);
-        }
-        ctxG.stroke();
-        
-        const lx = gLeft + (limit / 100) * (gRight - gLeft);
-        const ly = gBottom - (Math.min(100, (limit * 0.15) * 1.3) / 100) * (gBottom - gTop);
-        ctxG.beginPath();
-        ctxG.arc(lx, ly, 4, 0, Math.PI * 2);
-        ctxG.fillStyle = '#ef4444';
-        ctxG.fill();
-        ctxG.font = 'bold 9px sans-serif';
-        ctxG.fillText(`耐えられる限界 (${limit})`, lx - 40, ly - 8);
-
-        const curX = gLeft + (force / 100) * (gRight - gLeft);
-        const curY = gBottom - (Math.min(100, shiftX * 1.3) / 100) * (gBottom - gTop);
-        ctxG.beginPath();
-        ctxG.arc(curX, curY, 6, 0, Math.PI * 2);
-        ctxG.fillStyle = '#3b82f6';
-        ctxG.fill();
-        ctxG.strokeStyle = '#ffffff';
-        ctxG.lineWidth = 2;
-        ctxG.stroke();
-    }
-
-    carbonSlider.addEventListener('input', update);
-    forceSlider.addEventListener('input', update);
-
-    update();
-</script>
-
-</body>
-</html>
+            let
