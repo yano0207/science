@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>金属結合と自由電子（ボーアモデル）シミュレーション</title>
+    <title>金属の延性・展性シミュレーション</title>
     <style>
         :root {
             --primary-color: #007bff;
@@ -39,7 +39,7 @@
         }
 
         h1 {
-            font-size: 17px;
+            font-size: 18px;
             margin: 0;
             color: #222;
         }
@@ -59,6 +59,7 @@
             background-color: #545b62;
         }
 
+        /* モード切り替えボタン（スマホサイズ） */
         .mode-selector {
             display: flex;
             gap: 10px;
@@ -94,6 +95,7 @@
             color: white;
         }
 
+        /* メインキャンバス */
         .canvas-container {
             position: relative;
             width: 100%;
@@ -108,41 +110,7 @@
             box-shadow: inset 0 2px 6px rgba(0,0,0,0.3);
         }
 
-        .stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            background: #f0f2f5;
-            padding: 12px;
-            border-radius: 10px;
-            font-size: 14px;
-            margin-bottom: 15px;
-        }
-
-        .stat-box {
-            text-align: center;
-        }
-
-        .stat-label {
-            color: #666;
-            font-size: 12px;
-            margin-bottom: 4px;
-        }
-
-        .stat-value {
-            font-size: 19px;
-            font-weight: bold;
-        }
-
-        .status-text {
-            grid-column: span 2;
-            text-align: center;
-            font-weight: bold;
-            font-size: 14px;
-            padding-top: 5px;
-            border-top: 1px solid #ddd;
-        }
-
+        /* 大きなスマホ用スライダー */
         .control-panel {
             margin: 20px 0;
         }
@@ -158,7 +126,7 @@
         .range-slider {
             -webkit-appearance: none;
             width: 100%;
-            height: 24px;
+            height: 24px; /* タップしやすい太さ */
             background: #ddd;
             border-radius: 12px;
             outline: none;
@@ -186,14 +154,50 @@
             border: none;
         }
 
+        /* リアルタイム数値表示 */
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: #f0f2f5;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .stat-box {
+            text-align: center;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .status-text {
+            grid-column: span 2;
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+            padding-top: 5px;
+            border-top: 1px solid #ddd;
+        }
+
         .explanation {
             font-size: 13px;
             line-height: 1.5;
             color: #555;
-            background: #e3f2fd;
-            padding: 12px;
+            background: #fff3cd;
+            padding: 10px;
             border-radius: 8px;
-            border-left: 4px solid var(--primary-color);
+            border-left: 4px solid #ffc107;
         }
     </style>
 </head>
@@ -201,29 +205,29 @@
 
 <div class="container">
     <div class="header">
-        <h1>自由電子による金属の変形（ボーアモデル）</h1>
+        <h1>金属の結合と変形シミュレーション</h1>
         <a href="index.html" class="btn-back">戻る</a>
     </div>
 
     <div class="mode-selector">
-        <button id="btn-metal" class="btn-mode active" onclick="setMode('metal')">金属結合 (自由電子の移動)</button>
-        <button id="btn-ion" class="btn-mode ion" onclick="setMode('ion')">イオン結合 (電子の束縛)</button>
+        <button id="btn-metal" class="btn-mode active" onclick="setMode('metal')">金属結晶 (延性・展性)</button>
+        <button id="btn-ion" class="btn-mode ion" onclick="setMode('ion')">イオン結晶 (比較用:劈開)</button>
     </div>
 
     <div class="canvas-container">
-        <canvas id="simCanvas" width="600" height="420"></canvas>
+        <canvas id="simCanvas" width="600" height="380"></canvas>
     </div>
 
     <div class="stats">
         <div class="stat-box">
-            <div class="stat-label">上層のズレ量 (歪み)</div>
+            <div class="stat-label">ずらし量 (歪み)</div>
             <div id="val-strain" class="stat-value">0 pm</div>
         </div>
         <div class="stat-box">
             <div class="stat-label">結晶の結合安定度</div>
             <div id="val-stability" class="stat-value" style="color: #28a745;">100%</div>
         </div>
-        <div id="status-msg" class="status-text" style="color: #28a745;">安定（自由電子が結合を維持）</div>
+        <div id="status-msg" class="status-text" style="color: #28a745;">安定（結合を維持）</div>
     </div>
 
     <div class="control-panel">
@@ -232,11 +236,11 @@
             <span>外力を加える (スライド)</span>
             <span>右へ変形 →</span>
         </div>
-        <input type="range" id="forceSlider" class="range-slider" min="-120" max="120" value="0" oninput="handleSlider(this.value)">
+        <input type="range" id="forceSlider" class="range-slider" min="-100" max="100" value="0" oninput="handleSlider(this.value)">
     </div>
 
     <div id="expl-text" class="explanation">
-        <strong>金属結合:</strong> 電子は原子核の束縛を離れ、隣接する原子の軌道が接する点を経由して結晶全体を自由に動き回ります。層がズレても、電子が常に移動して原子間を繋ぎ止めるため、結合が壊れません。
+        <strong>金属結晶:</strong> 自由電子（黄色の点）が常に動き回り、陽イオンの間を動き回って繋ぎ止めているため、層がズレても結合が壊れません（延性・展性）。
     </div>
 </div>
 
@@ -244,131 +248,119 @@
     const canvas = document.getElementById('simCanvas');
     const ctx = canvas.getContext('2d');
 
-    // シミュレーション設定
-    let currentMode = 'metal';
-    let shiftX = 0;           // 上層のズレ量 (-120 〜 120)
-    let targetShiftX = 0;     // スライダー目標値
-    let isBroken = false;     // イオン結晶の劈開フラグ
-    let breakAnimationY = 0;
+    // シミュレーション状態管理
+    let currentMode = 'metal'; // 'metal' または 'ion'
+    let shiftX = 0;           // 上層のズレ量 (-100 〜 100)
+    let targetShiftX = 0;     // スライダーの目標値
+    let isBroken = false;     // イオン結晶が劈開したかフラグ
+    let breakAnimationY = 0;  // 劈開時の離れていくアニメーション用
 
-    // 原子・電子設定
-    const rows = 3;
-    const cols = 7;
-    const orbitalRadius = 35; // 電子軌道の半径
-    const spacingX = 2 * orbitalRadius; // 初期原子間隔
-    const spacingY = 1.8 * orbitalRadius;
-    const startX = (canvas.width - (cols - 1) * spacingX) / 2;
-    const startY = 70;
-    const electronRadius = 4;
-    const electronSpeed = 0.06; // rad/frame
-    const transferMargin = 0.08; // 軌道接点での移動判定許容誤差 (rad)
+    // 自由電子のデータ配列
+    const electrons = [];
+    const numElectrons = 45;
 
-    let atoms = [];
-    let electrons = [];
+    // 電子初期化
+    for (let i = 0; i < numElectrons; i++) {
+        electrons.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * 220,
+            vx: (Math.random() - 0.5) * 8,
+            vy: (Math.random() - 0.5) * 8
+        });
+    }
 
-    // グラフ用履歴
+    // リアルタイムグラフ用のデータ履歴
     const stabilityHistory = [];
     const maxHistory = 100;
     for(let i=0; i<maxHistory; i++) stabilityHistory.push(100);
 
-    // 1. 初期化
-    function init() {
-        atoms = [];
-        electrons = [];
-        // 原子の生成
-        for (let r = 0; r < rows; r++) {
-            for (let c = 0; c < cols; c++) {
-                atoms.push({
-                    id: atoms.length,
-                    r: r,
-                    c: c,
-                    baseX: startX + c * spacingX,
-                    baseY: startY + r * spacingY,
-                    x: startX + c * spacingX,
-                    y: startY + r * spacingY
-                });
-            }
-        }
-        // 電子の生成（各原子に1個ずつ自由電子）
-        atoms.forEach(atom => {
-            electrons.push({
-                atomId: atom.id, // 現在所属している原子のID
-                angle: Math.random() * Math.PI * 2, // 軌道上の角度
-                color: 'rgba(255, 235, 59, 1)' // 黄色
-            });
-        });
-    }
-
-    // モード切り替え
+    // モード切り替え関数
     function setMode(mode) {
         currentMode = mode;
         document.getElementById('btn-metal').classList.toggle('active', mode === 'metal');
         document.getElementById('btn-ion').classList.toggle('active', mode === 'ion');
+        
+        // スライダーリセット
         document.getElementById('forceSlider').value = 0;
         shiftX = 0;
         targetShiftX = 0;
         isBroken = false;
         breakAnimationY = 0;
-        init(); // 原子・電子をリセット
 
         const expl = document.getElementById('expl-text');
         if (mode === 'metal') {
-            expl.innerHTML = "<strong>金属結合:</strong> 電子は原子核の束縛を離れ、隣接する原子の軌道が接する点を経由して結晶全体を自由に動き回ります。層がズレても、電子が常に移動して原子間を繋ぎ止めるため、結合が壊れません。";
-            expl.style.borderLeftColor = 'var(--primary-color)';
-            expl.style.background = '#e3f2fd';
+            expl.innerHTML = "<strong>金属結晶:</strong> 自由電子（黄色の点）が常に動き回り、陽イオンの間を柔軟に満たして繋ぎ止めているため、層が大きくズレても結合が維持されます（延性・展性）。";
         } else {
-            expl.innerHTML = "<strong>イオン結合:</strong> 電子は特定の原子に強く束縛され、隣の原子へ移動できません。力を加えて層がズレると、同じ符号のイオン（＋と＋）が反発し合い、そこから一気に結合が壊れます（劈開）。";
-            expl.style.borderLeftColor = 'var(--danger-color)';
-            expl.style.background = '#f8d7da';
+            expl.innerHTML = "<strong>イオン結晶:</strong> 力を加えて層がズレると、同じ符号のイオン（＋と＋、ーとー）が反発し合い、そこから一気に結晶が割れて剥がれ落ちます（劈開）。";
         }
     }
 
-    // スライダー操作
+    // スライダー操作時
     function handleSlider(val) {
         targetShiftX = parseFloat(val);
     }
 
-    // 2. 角度の正規化（-PI to PI）
-    function normalizeAngle(angle) {
-        while (angle <= -Math.PI) angle += Math.PI * 2;
-        while (angle > Math.PI) angle -= Math.PI * 2;
-        return angle;
-    }
-
-    // 3. 物理演算ループ
+    // メインループ
     function update() {
-        shiftX += (targetShiftX - shiftX) * 0.1; // 滑らかな追従
+        // スライダー値の滑らかな追従
+        shiftX += (targetShiftX - shiftX) * 0.2;
 
-        // --- イオン結晶の劈開判定 ---
+        // --- 物理・判定ロジック ---
         let stability = 100;
-        if (currentMode === 'ion') {
-            let checkVal = Math.abs(shiftX);
-            // 特定のズレ量（格子間隔の半分：約R）付近で同符号が向かい合い反発
-            if (checkVal > orbitalRadius * 0.7 && checkVal < orbitalRadius * 1.3) {
-                isBroken = true;
-            }
-            if (isBroken) {
-                stability = 0;
-                if (breakAnimationY < 100) breakAnimationY += 3; // 反発して離れていく
-            } else {
-                breakAnimationY = 0;
-                stability = Math.round(100 - (checkVal / (orbitalRadius * 0.8)) * 100);
-                if(stability < 0) stability = 0;
-            }
-        } else {
-            // 金属はズレても自由電子がカバーするので安定度は高水準を維持
+        
+        if (currentMode === 'metal') {
             isBroken = false;
             breakAnimationY = 0;
-            stability = Math.round(100 - Math.abs(Math.sin(shiftX * 0.03)) * 10);
+            // 金属はズレても自由電子がカバーするので安定度は高水準を維持
+            // ズレの周期性に合わせてわずかに変動させてリアルさを演出
+            stability = Math.round(100 - Math.abs(Math.sin(shiftX * 0.05)) * 15);
+            
+            // 自由電子の移動更新（常に激しく動かす）
+            electrons.forEach(e => {
+                e.x += e.vx;
+                e.y += e.vy;
+
+                // 画面端および原子存在エリアでのバウンド処理
+                if (e.x < 10 || e.x > canvas.width - 10) e.vx *= -1;
+                if (e.y < 20 || e.y > 220) e.vy *= -1;
+
+                // 上層（y < 110）が動いている場合、電子も上層の動きに引きずられる微小な力を受ける
+                if (e.y < 110) {
+                    if (targetShiftX > shiftX) e.x += 0.5;
+                    if (targetShiftX < shiftX) e.x -= 0.5;
+                }
+            });
+        } else {
+            // イオン結晶の場合の判定
+            // 特定のズレ（格子間隔の半分：約40〜60付近）で同符号が向かい合い反発する
+            let checkVal = Math.abs(shiftX);
+            if (checkVal > 35 && checkVal < 75) {
+                isBroken = true;
+            }
+            
+            if (isBroken) {
+                stability = 0;
+                // 割れて反発して離れていくアニメーション
+                if (breakAnimationY < 80) breakAnimationY += 4;
+            } else {
+                breakAnimationY = 0;
+                // 同符号が近づくにつれて安定度が急低下
+                stability = Math.round(100 - (checkVal / 40) * 100);
+                if(stability < 0) stability = 0;
+            }
         }
 
-        // --- グラフ・UI更新 ---
+        // グラフ履歴の更新
         stabilityHistory.push(stability);
-        if (stabilityHistory.length > maxHistory) stabilityHistory.shift();
-        
-        document.getElementById('val-strain').innerText = `${Math.abs(Math.round(shiftX * 2.5))} pm`;
+        if (stabilityHistory.length > maxHistory) {
+            stabilityHistory.shift();
+        }
+
+        // UI表示の更新
+        document.getElementById('val-strain').innerText = `${Math.abs(Math.round(shiftX * 3))} pm`;
         const stabEl = document.getElementById('val-stability');
         const msgEl = document.getElementById('status-msg');
+        
         stabEl.innerText = `${stability}%`;
         if (stability > 50) {
             stabEl.style.color = '#28a745';
@@ -384,83 +376,138 @@
             msgEl.style.color = '#dc3545';
         }
 
-        // --- 原子・電子の位置計算 ---
-        // 原子の位置を確定（上層を変形）
-        atoms.forEach(atom => {
-            if (atom.r < 2) { // 上層2段
-                atom.x = atom.baseX + shiftX;
-                atom.y = atom.baseY - breakAnimationY;
-            } else { // 最下層
-                atom.x = atom.baseX;
-                atom.y = atom.baseY;
-            }
-        });
+        // --- 描画ロジック ---
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // 電子の円運動と軌道間移動
-        electrons.forEach(e => {
-            // 現在所属している原子
-            const currentAtom = atoms[e.atomId];
-            
-            // 軌道上を動かす
-            e.angle = normalizeAngle(e.angle + electronSpeed);
+        // 1. 背景グリッド（雰囲気用）
+        ctx.strokeStyle = '#222';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < canvas.width; x += 40) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 240); ctx.stroke();
+        }
 
-            // --- 軌道間移動ロジック（金属モードのみ） ---
-            if (currentMode === 'metal') {
-                // すべての他の原子との接触をチェック
-                for (let i = 0; i < atoms.length; i++) {
-                    if (atoms[i].id === e.atomId) continue;
-                    const neighbor = atoms[i];
+        // 2. 自由電子の描画（金属モードのみ、常に動き回る）
+        if (currentMode === 'metal') {
+            electrons.forEach(e => {
+                ctx.beginPath();
+                ctx.arc(e.x, e.y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 235, 59, 0.9)'; // 鮮やかな黄色
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#ffeb3b';
+                ctx.fill();
+                ctx.shadowBlur = 0; // リセット
 
-                    // 原子間の距離と角度
-                    const dx = neighbor.x - currentAtom.x;
-                    const dy = neighbor.y - currentAtom.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
+                // 「マイナス」の記号を電子の中に描く
+                ctx.fillStyle = '#000';
+                ctx.font = 'bold 9px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('-', e.x, e.y - 0.5);
+            });
+        }
 
-                    // 軌道が接しているか判定 (半径の和と距離を比較)
-                    if (dist < orbitalRadius * 2.05) { 
-                        // 所属原子から見て、隣接原子が存在する角度（接点）
-                        const angleToNeighbor = Math.atan2(dy, dx);
-                        
-                        // 電子が今、その接点付近にいるか？
-                        const diff = normalizeAngle(e.angle - angleToNeighbor);
-                        if (Math.abs(diff) < transferMargin) {
-                            // 隣接原子へ移籍！
-                            e.atomId = neighbor.id;
-                            // 移動先の原子から見て、新しい角度はちょうど180度反対になる
-                            e.angle = normalizeAngle(angleToNeighbor + Math.PI);
-                            break; // 1フレームで移動は1回まで
-                        }
+        // 3. 原子（陽イオン・陰イオン）の描画
+        const rows = 3;
+        const cols = 7;
+        const spacingX = 80;
+        const spacingY = 60;
+        const startX = 60;
+        const startY = 50;
+        const radius = 22;
+
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                let x = startX + c * spacingX;
+                let y = startY + r * spacingY;
+
+                // 上層（r = 0, 1）に変形（スライド）を適用
+                if (r < 2) {
+                    x += shiftX;
+                    y -= breakAnimationY; // イオン結晶の反発分離用
+                }
+
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+
+                if (currentMode === 'metal') {
+                    // 金属：すべて陽イオン（＋）
+                    ctx.fillStyle = '#4682B4'; // スチールブルー
+                    ctx.strokeStyle = '#B0C4DE';
+                    ctx.lineWidth = 2;
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // 「＋」印
+                    ctx.fillStyle = 'white';
+                    ctx.font = 'bold 16px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('+', x, y);
+                } else {
+                    // イオン結晶：＋とーが交互に並ぶ
+                    let isPositive = (r + c) % 2 === 0;
+                    if (isPositive) {
+                        ctx.fillStyle = '#dc3545'; // 赤（陽イオン）
+                        ctx.fill();
+                        ctx.fillStyle = 'white';
+                        ctx.font = 'bold 16px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('+', x, y);
+                    } else {
+                        ctx.fillStyle = '#007bff'; // 青（陰イオン）
+                        ctx.fill();
+                        ctx.fillStyle = 'white';
+                        ctx.font = 'bold 16px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('-', x, y);
                     }
                 }
             }
-        });
-
-        // --- 描画ループ ---
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // 背景グリッド
-        ctx.strokeStyle = '#222';
-        ctx.lineWidth = 1;
-        for (let x = 0; x < canvas.width; x += spacingX/2) {
-            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, startY + rows * spacingY); ctx.stroke();
         }
 
-        // ボーアモデルの描画（原子核・軌道・電子）
-        // 1. 軌道（円）をすべて先に描画
-        atoms.forEach(atom => {
-            ctx.beginPath();
-            ctx.arc(atom.x, atom.y, orbitalRadius, 0, Math.PI * 2);
-            ctx.strokeStyle = currentMode === 'metal' ? 'rgba(70, 130, 180, 0.5)' : 'rgba(150, 150, 150, 0.3)';
-            ctx.lineWidth = currentMode === 'metal' ? 2 : 1;
-            ctx.stroke();
-        });
+        // 4. リアルタイムグラフの描画（Canvas下部エリア）
+        const graphTop = 260;
+        const graphHeight = 90;
+        
+        // グラフ背景
+        ctx.fillStyle = '#1e1e1e';
+        ctx.fillRect(10, graphTop, canvas.width - 20, graphHeight);
+        
+        // グラフ枠線
+        ctx.strokeStyle = '#444';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(10, graphTop, canvas.width - 20, graphHeight);
 
-        // 2. 電子の描画
-        electrons.forEach(e => {
-            const atom = atoms[e.atomId];
-            const ex = atom.x + orbitalRadius * Math.cos(e.angle);
-            const ey = atom.y + orbitalRadius * Math.sin(e.angle);
+        // グラフの線を描画
+        ctx.beginPath();
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = currentMode === 'metal' ? '#28a745' : '#dc3545';
+        
+        for (let i = 0; i < stabilityHistory.length; i++) {
+            const gx = 10 + (i / (maxHistory - 1)) * (canvas.width - 20);
+            const gy = graphTop + graphHeight - (stabilityHistory[i] / 100) * (graphHeight - 20) - 10;
+            if (i === 0) ctx.moveTo(gx, gy);
+            else ctx.lineTo(gx, gy);
+        }
+        ctx.stroke();
 
-            ctx.beginPath();
-            ctx.arc(ex, ey, electronRadius, 0, Math.PI * 2);
-            ctx.fillStyle = e.color
+        // グラフのラベル
+        ctx.fillStyle = '#aaa';
+        ctx.font = '11px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('リアルタイム結合安定度グラフ (時間経過)', 20, graphTop + 18);
+        ctx.textAlign = 'right';
+        ctx.fillText('100%', canvas.width - 20, graphTop + 18);
+        ctx.fillText('0%', canvas.width - 20, graphTop + graphHeight - 8);
+
+        requestAnimationFrame(update);
+    }
+
+    // シミュレーション開始
+    update();
+</script>
+
+</body>
+</html>
