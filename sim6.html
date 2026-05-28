@@ -17,7 +17,7 @@
 
         .btn-container {
             position: absolute; bottom: 20px; width: 100%;
-            display: flex; justify-content: center; gap: 15px; z-index: 10;
+            display: flex; justify-content: center; gap: 15px; z-index: 100; /* 最前面に配置して確実に押せるように */
         }
 
         .btn {
@@ -85,7 +85,8 @@
         mainX = width * 0.85;
         mainY = deskLevel - 70; 
         
-        matchBoxX = width / 2 - 35; 
+        // ★マッチ箱の配置: 元栓（mainX）のやや左側へ移動
+        matchBoxX = mainX - 110; 
         matchBoxY = deskLevel - 40; 
         
         matchX = matchBoxX + 40;
@@ -297,7 +298,12 @@
         pop();
     }
 
-    function mousePressed() {
+    // ★スマホ用修正：ボタン要素のタッチはキャンバスで弾かないようにする
+    function mousePressed(event) {
+        if (event && event.target && event.target.tagName !== 'CANVAS') {
+            return; // キャンバス以外の要素（ボタン等）を押した時は標準の動作をさせる
+        }
+
         lastMouseX = mouseX;
 
         if (dist(mouseX, mouseY, mainX, mainY - 20) < 40) {
@@ -347,7 +353,11 @@
         }
     }
 
-    function mouseDragged() {
+    function mouseDragged(event) {
+        if (event && event.target && event.target.tagName !== 'CANVAS') {
+            return;
+        }
+
         if (draggingSubject === "match") {
             matchX = mouseX;
             matchY = mouseY;
@@ -366,7 +376,7 @@
         } else if (draggingSubject === "gasScrew") {
             let dx = mouseX - lastMouseX;
             gasScrewAngle = constrain(gasScrewAngle + dx * 0.8, 0, 100); 
-            checkIgnite(); // ★ ここを追加：ガスネジを回した瞬間にも点火判定を行う
+            checkIgnite(); 
             checkErrorGas();
         }
         
@@ -375,7 +385,11 @@
         if (draggingSubject) return false; 
     }
 
-    function mouseReleased() {
+    function mouseReleased(event) {
+        if (event && event.target && event.target.tagName !== 'CANVAS') {
+            return;
+        }
+
         draggingSubject = null;
         
         if (isMatchLit && dist(matchX, matchY - 40, burnerX, burnerY - 200) > 100) {
@@ -389,8 +403,7 @@
             isFlameLit = false;
             setMessage("火が消えました。ネジ、コック、元栓をすべて閉めてください。");
         }
-        
-        return false;
+        // ★ ここにあった return false; を削除したことで、画面何もないところのタップが正常に抜けるようになります
     }
 
     function checkIgnite() {
@@ -411,7 +424,6 @@
 
     function checkErrorGas() {
         if (gasScrewAngle > 5 && !isFlameLit && isMainGasOpen && isCockOpen) {
-             // ★ マッチの火がついていない、または遠い状態でガスを開けた場合に警告
              if (!isMatchLit || dist(matchX, matchY - 40, burnerX, burnerY - 200) >= 50) {
                  setMessage("⚠️ ガス漏れ！マッチの火を近づけてからガスを開けてください！", true);
                  gasScrewAngle = 0; 
