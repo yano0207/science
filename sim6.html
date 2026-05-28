@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ガスバーナー直接操作シミュレーター（リアル版）</title>
+    <title>ガスバーナー直接操作シミュレーター（スマホ対応版）</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
     <style>
         body { margin: 0; padding: 0; overflow: hidden; background: #fdfdfd; font-family: 'Hiragino Sans', sans-serif; touch-action: none; }
@@ -12,15 +12,21 @@
             position: absolute; top: 0; width: 100%; background: rgba(255, 255, 255, 0.95);
             color: #333; padding: 15px; text-align: center; font-size: 15px; font-weight: bold;
             border-bottom: 2px solid #ddd; box-sizing: border-box; z-index: 10;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); min-height: 70px;
         }
 
-        #back-btn {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: #2c3e50; color: white; border: none; padding: 12px 24px;
-            border-radius: 20px; font-weight: bold; cursor: pointer; text-decoration: none;
-            z-index: 10; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        .btn-container {
+            position: absolute; bottom: 20px; width: 100%;
+            display: flex; justify-content: center; gap: 15px; z-index: 10;
         }
+
+        .btn {
+            background: #2c3e50; color: white; border: none; padding: 12px 20px;
+            border-radius: 20px; font-weight: bold; cursor: pointer; text-decoration: none;
+            font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        #reset-btn { background: #e74c3c; }
     </style>
 </head>
 <body>
@@ -28,7 +34,11 @@
 <div id="message-area">
     手順1：まずは右側の「元栓（黒いツマミ）」を<br>タップして開いてください。
 </div>
-<a href="index.html" id="back-btn">メニューへ戻る</a>
+
+<div class="btn-container">
+    <button class="btn" id="reset-btn" onclick="resetSim()">リセット</button>
+    <a href="index.html" class="btn">メニューへ戻る</a>
+</div>
 
 <script>
     // 状態変数
@@ -39,7 +49,7 @@
     let matchX, matchY;        
     let isMatchLit = false;    
     let isFlameLit = false;    
-    let lastMouseY = 0;
+    let lastMouseX = 0;
     let draggingSubject = null; 
 
     // 座標の定義
@@ -50,22 +60,36 @@
         createCanvas(windowWidth, windowHeight);
         angleMode(DEGREES);
         calculatePositions();
-        
-        // マッチの初期位置
-        matchX = matchBoxX + 40;
-        matchY = matchBoxY - 40;
+        resetSim(); // 初期位置セット
     }
 
-    function calculatePositions() {
-        let deskLevel = height - 120;
-        // 画像に合わせ、バーナーを左、元栓を右に
-        burnerX = width * 0.3;
-        burnerY = deskLevel;
-        mainX = width * 0.75;
-        mainY = deskLevel - 80; 
+    // リセット機能
+    window.resetSim = function() {
+        isMainGasOpen = false; 
+        isCockOpen = false;    
+        gasScrewAngle = 0;     
+        airScrewAngle = 0;     
+        isMatchLit = false;    
+        isFlameLit = false;    
+        draggingSubject = null; 
         
-        matchBoxX = width / 2;
-        matchBoxY = 80;
+        matchX = matchBoxX + 40;
+        matchY = matchBoxY - 30;
+        updateMessage();
+    };
+
+    function calculatePositions() {
+        // スマホ縦画面を想定した配置
+        let deskLevel = height - 140; 
+        
+        burnerX = width * 0.35;
+        burnerY = deskLevel;
+        mainX = width * 0.85;
+        mainY = deskLevel - 70; 
+        
+        // メッセージエリア（上部70px）に被らないように120pxあたりに配置
+        matchBoxX = width / 2 - 20;
+        matchBoxY = 120;
     }
 
     function draw() {
@@ -73,23 +97,23 @@
 
         // 実験台（机）
         fill(220, 220, 225); noStroke();
-        rect(0, height - 120, width, 120);
+        rect(0, height - 140, width, 140);
         stroke(180); strokeWeight(2);
-        line(0, height - 120, width, height - 120);
+        line(0, height - 140, width, height - 140);
 
-        // --- ゴム管（グレーのホース） ---
+        // ゴム管
         drawHose();
 
-        // --- 元栓（壁・台座側のバルブ） ---
+        // 元栓
         drawMainValve();
 
-        // --- ガスバーナー本体（コック含む） ---
+        // ガスバーナー
         drawBurner();
 
-        // --- マッチ箱 ---
+        // マッチ箱
         drawMatchBox();
 
-        // --- マッチ（動かせる） ---
+        // マッチ
         drawMatch();
     }
 
@@ -99,95 +123,88 @@
         
         // 配管
         fill(180); stroke(100); strokeWeight(2);
-        rect(0, 0, 30, 80); // 縦パイプ
-        rect(-40, 20, 40, 20); // 横パイプ（ホース接続部）
+        rect(-10, 0, 20, 80); // 縦パイプ
+        rect(-40, 20, 30, 20); // 横パイプ
 
         // バルブ本体
         fill(200);
-        rect(-15, -20, 60, 40, 5); 
+        rect(-25, -20, 50, 40, 5); 
 
         // ツマミ（黒）
         fill(40); stroke(20);
         push();
-        translate(15, -20);
+        translate(0, -20);
         if (isMainGasOpen) rotate(-90); else rotate(0); 
-        rect(-25, -15, 50, 20, 10); // ツマミの持ち手
+        rect(-25, -15, 50, 20, 10); 
         rect(-10, -5, 20, 15);
         pop();
         
         fill(50); noStroke(); textSize(12); textStyle(BOLD); textAlign(CENTER);
-        text("元栓", 15, 50);
+        text("元栓", 0, 55);
         pop();
     }
 
     function drawHose() {
-        // 画像のようなグレーのホース
-        stroke(120); strokeWeight(18); noFill(); strokeCap(ROUND);
+        stroke(120); strokeWeight(16); noFill(); strokeCap(ROUND);
         let startX = mainX - 40;
         let startY = mainY + 30;
-        let endX = burnerX + 60; // コックの先
+        let endX = burnerX + 50; 
         let endY = burnerY - 30;
         
         // たるみ
-        bezier(startX, startY, startX - 50, startY + 80, endX + 50, endY + 80, endX, endY);
-        
-        // ホースのハイライト（立体感）
-        stroke(160); strokeWeight(8);
-        bezier(startX, startY, startX - 50, startY + 80, endX + 50, endY + 80, endX, endY);
+        bezier(startX, startY, startX - 30, startY + 60, endX + 40, endY + 60, endX, endY);
+        stroke(160); strokeWeight(6);
+        bezier(startX, startY, startX - 30, startY + 60, endX + 40, endY + 60, endX, endY);
     }
 
     function drawBurner() {
         push();
         translate(burnerX, burnerY);
         
-        // --- 1. 土台 ---
+        // 土台
         fill(100); stroke(60); strokeWeight(2);
-        ellipse(0, 0, 130, 30); // 底面
-        rect(-65, -15, 130, 15); // 厚み
+        ellipse(0, 0, 110, 25); 
+        rect(-55, -15, 110, 15); 
         fill(110);
-        ellipse(0, -15, 130, 30); // 上面
+        ellipse(0, -15, 110, 25); 
         
         // 縦軸パイプ
         fill(180); stroke(100);
-        rect(-12, -45, 24, 30);
+        rect(-10, -45, 20, 30);
 
-        // --- 2. コック（バーナー根元） ---
+        // コック
         push();
-        translate(12, -30);
-        // 接続部
+        translate(10, -30);
         fill(200); stroke(100);
-        rect(0, -8, 25, 16); 
-        // コック本体（ギザギザ）
+        rect(0, -8, 20, 16); 
         fill(180);
-        rect(25, -12, 20, 24, 2);
+        rect(20, -12, 16, 24, 2);
         stroke(120); strokeWeight(1);
-        for(let i = 27; i < 44; i += 3) line(i, -11, i, 11); // ギザギザ模様
+        for(let i = 22; i < 36; i += 3) line(i, -11, i, 11); 
         
-        // コックのレバー（画像の手前を向いている小さなツマミ）
         fill(150); stroke(80); strokeWeight(2);
         push();
-        translate(35, 0);
-        if (isCockOpen) rotate(0); else rotate(-90); // 縦=開、横=閉
-        rect(-5, -5, 25, 10, 3);
+        translate(28, 0);
+        if (isCockOpen) rotate(0); else rotate(-90); 
+        rect(-4, -4, 20, 8, 3);
         pop();
         
-        fill(50); noStroke(); textSize(12); textStyle(BOLD); textAlign(CENTER);
-        text("コック", 35, 30);
+        // コックの文字（白文字＋黒影で見やすく）
+        noStroke(); textSize(13); textStyle(BOLD); textAlign(CENTER);
+        fill(0); text("コック", 30, 31); // 影
+        fill(255); text("コック", 29, 30); // 本体
         pop();
 
-        // --- 3. ガス調節ネジ（下） ---
+        // ネジ
         drawGasScrew(-60, gasScrewAngle);
-
-        // --- 4. 空気調節ネジ（上・円錐形） ---
         drawAirScrew(-90, airScrewAngle);
 
-        // --- 5. 煙突（パイプ） ---
+        // 煙突
         fill(210); stroke(120); strokeWeight(2);
-        rect(-12, -220, 24, 100);
+        rect(-10, -200, 20, 90);
         fill(150);
-        ellipse(0, -220, 24, 6); // 口
+        ellipse(0, -200, 20, 6); 
 
-        // 炎
         if (isFlameLit) drawFlame();
         
         pop();
@@ -197,18 +214,17 @@
         push();
         translate(0, yOffset);
         fill(220); stroke(100); strokeWeight(2);
-        rect(-35, -10, 70, 20, 2); // ギザギザのリング
+        rect(-30, -10, 60, 20, 2); 
         
-        // ギザギザ模様のスクロール
         stroke(140); strokeWeight(1.5);
-        for(let i = -30; i <= 30; i += 4) {
+        for(let i = -25; i <= 25; i += 4) {
             let shift = (angle * 0.5) % 4;
             let lx = i + shift;
-            if (lx >= -30 && lx <= 30) line(lx, -10, lx, 10);
+            if (lx >= -25 && lx <= 25) line(lx, -10, lx, 10);
         }
         
         fill(100); noStroke(); textSize(10); textStyle(BOLD); textAlign(RIGHT);
-        text(`ガス調節ネジ (${round(angle)}%)`, -45, 4);
+        text(`ガス (${round(angle)}%)`, -35, 4);
         pop();
     }
 
@@ -217,52 +233,47 @@
         translate(0, yOffset);
         fill(210); stroke(100); strokeWeight(2);
         
-        // 円錐部分
-        quad(-16, -30, 16, -30, 30, 10, -30, 10);
+        quad(-14, -25, 14, -25, 26, 10, -26, 10);
+        rect(-30, 10, 60, 15, 2);
         
-        // 下部のギザギザリング
-        rect(-35, 10, 70, 15, 2);
         stroke(140); strokeWeight(1.5);
-        for(let i = -30; i <= 30; i += 4) {
+        for(let i = -25; i <= 25; i += 4) {
             let shift = (angle * 0.5) % 4;
             let lx = i + shift;
-            if (lx >= -30 && lx <= 30) line(lx, 10, lx, 25);
+            if (lx >= -25 && lx <= 25) line(lx, 10, lx, 25);
         }
         
         fill(100); noStroke(); textSize(10); textStyle(BOLD); textAlign(RIGHT);
-        text(`空気調節ネジ (${round(angle)}%)`, -45, 20);
+        text(`空気 (${round(angle)}%)`, -35, 20);
         pop();
     }
 
     function drawFlame() {
-        let heightFl = 40 + (gasScrewAngle * 1.0); 
+        let heightFl = 30 + (gasScrewAngle * 0.8); 
         
         colorMode(HSB, 360, 100, 100, 100);
         let hueVal = map(airScrewAngle, 0, gasScrewAngle, 30, 200);
         if (airScrewAngle > gasScrewAngle) hueVal = 200; 
         
         noStroke();
-        
-        // 外炎
         fill(hueVal, 80, 90, 60);
         beginShape();
-        vertex(-15, -220);
-        bezierVertex(-20, -220 - heightFl/2, -10, -220 - heightFl, 0, -220 - heightFl); 
-        bezierVertex(10, -220 - heightFl, 20, -220 - heightFl/2, 15, -220);    
+        vertex(-12, -200);
+        bezierVertex(-16, -200 - heightFl/2, -8, -200 - heightFl, 0, -200 - heightFl); 
+        bezierVertex(8, -200 - heightFl, 16, -200 - heightFl/2, 12, -200);    
         endShape(CLOSE);
         
-        // 内炎（青い場合）
         if (hueVal > 150) {
             fill(190, 80, 95, 90);
             beginShape();
-            vertex(-8, -220);
-            bezierVertex(-10, -220 - heightFl/3, -5, -220 - heightFl*0.6, 0, -220 - heightFl*0.6); 
-            bezierVertex(5, -220 - heightFl*0.6, 10, -220 - heightFl/3, 8, -220);    
+            vertex(-6, -200);
+            bezierVertex(-8, -200 - heightFl/3, -4, -200 - heightFl*0.6, 0, -200 - heightFl*0.6); 
+            bezierVertex(4, -200 - heightFl*0.6, 8, -200 - heightFl/3, 6, -200);    
             endShape(CLOSE);
         }
 
         if (airScrewAngle > 80 && gasScrewAngle < 50) {
-            setMessage("⚠️ 空気が多すぎます！炎が浮き上がって（リフティング）消えそうです。", true);
+            setMessage("⚠️ 空気が多すぎます！炎が（リフティング）して消えそうです。", true);
         } else if (airScrewAngle > 0 && gasScrewAngle > 0) {
              let ratio = airScrewAngle / gasScrewAngle;
              if (ratio > 0.8 && ratio < 1.2) {
@@ -277,13 +288,11 @@
     function drawMatchBox() {
         push();
         translate(matchBoxX, matchBoxY);
-        // 箱
         fill(240, 230, 200); stroke(180, 160, 130); strokeWeight(2);
         rect(0, 0, 70, 50, 4);
-        // 擦る薬（側面の茶色）
         fill(100, 50, 30); noStroke();
         rect(10, 35, 50, 10, 2); 
-        fill(80); textSize(14); textStyle(BOLD); textAlign(CENTER);
+        fill(80); textSize(12); textStyle(BOLD); textAlign(CENTER);
         text("マッチ箱", 35, 25);
         pop();
     }
@@ -291,14 +300,11 @@
     function drawMatch() {
         push();
         translate(matchX, matchY);
-        // 棒
         fill(230, 200, 160); stroke(180, 150, 110); strokeWeight(1);
         rect(-3, -40, 6, 80, 2); 
-        // 頭
         fill(150, 40, 40); stroke(100, 20, 20);
         ellipse(0, -40, 12, 16); 
         
-        // 火
         if (isMatchLit) {
             fill(255, 120, 0, 90); noStroke();
             ellipse(0, -55, 20, 30); 
@@ -309,18 +315,18 @@
 
     // --- 操作 ---
     function mousePressed() {
-        lastMouseY = mouseY;
+        lastMouseX = mouseX; // 横方向のドラッグ量計算用
 
-        // 元栓タップ (ツマミ付近)
-        if (dist(mouseX, mouseY, mainX + 15, mainY - 20) < 40) {
+        // 元栓タップ
+        if (dist(mouseX, mouseY, mainX, mainY - 20) < 40) {
             isMainGasOpen = !isMainGasOpen;
             if (isFlameLit && !isMainGasOpen) isFlameLit = false; 
             updateMessage();
             return;
         }
         
-        // コックタップ (レバー付近)
-        if (dist(mouseX, mouseY, burnerX + 47, burnerY - 30) < 30) {
+        // コックタップ
+        if (dist(mouseX, mouseY, burnerX + 38, burnerY - 30) < 30) {
             isCockOpen = !isCockOpen;
             if (isFlameLit && !isCockOpen) isFlameLit = false;
             updateMessage();
@@ -333,16 +339,14 @@
             return;
         }
 
-        // ネジドラッグ
+        // ネジドラッグ判定
         let tx = mouseX - burnerX;
         let ty = mouseY - burnerY;
         
-        // 空気調節ネジ (円錐付近)
-        if (ty > -120 && ty < -80 && abs(tx) < 40) {
+        if (ty > -110 && ty < -70 && abs(tx) < 40) {
             draggingSubject = "airScrew"; return;
         }
-        // ガス調節ネジ
-        if (ty > -75 && ty < -50 && abs(tx) < 40) {
+        if (ty > -70 && ty < -45 && abs(tx) < 40) {
             draggingSubject = "gasScrew"; return;
         }
     }
@@ -352,35 +356,35 @@
             matchX = mouseX;
             matchY = mouseY;
             
-            // マッチが箱に触れたら着火（摩擦）
             if (!isMatchLit && 
                 matchX > matchBoxX - 20 && matchX < matchBoxX + 90 && 
                 matchY - 40 > matchBoxY - 20 && matchY - 40 < matchBoxY + 70) {
                 isMatchLit = true; 
                 setMessage("手順3：マッチの火をバーナーの口（一番上）に近づけてください。");
             }
-            
             checkIgnite(); 
         } else if (draggingSubject === "airScrew") {
-            let dy = mouseY - lastMouseY;
-            airScrewAngle = constrain(airScrewAngle - dy * 0.8, 0, 100); 
+            // ★左右(横)ドラッグで回転するように変更
+            let dx = mouseX - lastMouseX;
+            airScrewAngle = constrain(airScrewAngle + dx * 0.8, 0, 100); 
             checkErrorAir();
         } else if (draggingSubject === "gasScrew") {
-            let dy = mouseY - lastMouseY;
-            gasScrewAngle = constrain(gasScrewAngle - dy * 0.8, 0, 100); 
+            // ★左右(横)ドラッグで回転するように変更
+            let dx = mouseX - lastMouseX;
+            gasScrewAngle = constrain(gasScrewAngle + dx * 0.8, 0, 100); 
             checkErrorGas();
         }
-        lastMouseY = mouseY;
+        
+        lastMouseX = mouseX;
     }
 
     function mouseReleased() {
         draggingSubject = null;
         
-        // バーナーから離れたらマッチの火を消して戻す
-        if (isMatchLit && dist(matchX, matchY - 40, burnerX, burnerY - 220) > 100) {
+        if (isMatchLit && dist(matchX, matchY - 40, burnerX, burnerY - 200) > 100) {
             isMatchLit = false;
             matchX = matchBoxX + 40;
-            matchY = matchBoxY - 40;
+            matchY = matchBoxY - 30;
             if (!isFlameLit) setMessage("マッチの火が消えました。箱にこすってつけ直してください。");
         }
         
@@ -393,15 +397,14 @@
     function checkIgnite() {
         if (!isMainGasOpen || !isCockOpen || !isMatchLit || isFlameLit) return;
         
-        // バーナーの口（y = -220）に近いか
-        if (dist(matchX, matchY - 40, burnerX, burnerY - 220) < 50) {
-            setMessage("手順3：そのまま「ガス調節ネジ（下）」を上にドラッグして開いてください。");
+        if (dist(matchX, matchY - 40, burnerX, burnerY - 200) < 50) {
+            setMessage("手順3：そのまま「ガス調節ネジ（下）」を右にドラッグして開いてください。");
             
             if (gasScrewAngle > 5) {
                 isFlameLit = true;
                 isMatchLit = false; 
-                matchX = matchBoxX + 40; matchY = matchBoxY - 40;
-                setMessage("✅ 点火成功！手順4：空気調節ネジ（上）を開いて青い炎にしてください。");
+                matchX = matchBoxX + 40; matchY = matchBoxY - 30;
+                setMessage("✅ 点火成功！手順4：空気調節ネジ（上）を右ドラッグで開いてください。");
             }
         }
     }
@@ -424,7 +427,7 @@
         if (!isMainGasOpen) {
             setMessage("手順1：まずは右側の「元栓（黒いツマミ）」を<br>タップして開いてください。");
         } else if (!isCockOpen) {
-            setMessage("手順2：次にバーナー根元の「コック」を<br>タップして縦（開）にしてください。");
+            setMessage("手順2：次にバーナー根元の「コック」を<br>タップして開いてください。");
         } else if (!isMatchLit && !isFlameLit) {
             setMessage("手順3：マッチを箱にこすって火をつけ、<br>バーナーの口へ持っていってください。");
         }
@@ -440,6 +443,12 @@
     function windowResized() {
         resizeCanvas(windowWidth, windowHeight);
         calculatePositions();
+        
+        // 画面リサイズ時にマッチが迷子にならないよう戻す
+        if (!isMatchLit && draggingSubject !== "match") {
+            matchX = matchBoxX + 40;
+            matchY = matchBoxY - 30;
+        }
     }
 </script>
 
