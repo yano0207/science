@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ガスバーナー使い方シミュレーション</title>
+    <style>
+        body { font-family: 'Hiragino Sans', sans-serif; margin: 0; background: #eef2f5; display: flex; flex-direction: column; height: 100vh; }
+        header { background: #e74c3c; color: white; padding: 10px; text-align: center; font-weight: bold; }
+        
+        /* メッセージエリア */
+        #message-box { background: #fff3cd; color: #856404; padding: 10px; text-align: center; font-size: 0.9rem; border-bottom: 2px solid #ffeeba; min-height: 40px; display: flex; align-items: center; justify-content: center; }
+        
+        /* バーナーのビジュアル */
+        #visual-area { flex: 1; display: flex; justify-content: center; align-items: flex-end; padding-bottom: 20px; position: relative; background: #fff; overflow: hidden; }
+        
+        #burner { display: flex; flex-direction: column; align-items: center; position: relative; }
+        
+        /* 炎の表現 */
+        #flame { width: 40px; height: 0px; background: #ff9d00; border-radius: 50% 50% 20% 20% / 60% 60% 40% 40%; position: absolute; bottom: 160px; transition: all 0.3s; opacity: 0.9; box-shadow: 0 0 20px #ff9d00; }
+        
+        /* バーナー本体 */
+        #tube { width: 30px; height: 100px; background: linear-gradient(to right, #999, #eee, #999); border-radius: 5px 5px 0 0; border: 2px solid #555; border-bottom: none; z-index: 2; }
+        #air-valve { width: 44px; height: 20px; background: #555; border-radius: 3px; z-index: 3; display: flex; justify-content: center; align-items: center; color: white; font-size: 10px; }
+        #mid-tube { width: 20px; height: 15px; background: #777; z-index: 2; border-left: 2px solid #555; border-right: 2px solid #555; }
+        #gas-valve { width: 44px; height: 20px; background: #555; border-radius: 3px; z-index: 3; display: flex; justify-content: center; align-items: center; color: white; font-size: 10px; }
+        #base { width: 80px; height: 15px; background: #333; border-radius: 10px 10px 0 0; z-index: 1; }
+        
+        /* マッチ */
+        #match { position: absolute; right: -100px; bottom: 150px; font-size: 40px; transition: right 0.5s; z-index: 10; display: none; }
+        
+        /* 操作パネル */
+        #controls { background: white; padding: 15px; border-top: 2px solid #ddd; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); }
+        .control-group { margin-bottom: 15px; }
+        .label-row { display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: bold; margin-bottom: 5px; }
+        
+        input[type=range] { width: 100%; margin: 0; }
+        
+        .btn-row { display: flex; gap: 10px; margin-bottom: 15px; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; color: white; }
+        #btn-main-gas { background: #34495e; }
+        #btn-main-gas.active { background: #27ae60; }
+        #btn-match { background: #d35400; }
+        #btn-match.active { background: #e67e22; }
+        .back-btn { background: #95a5a6; width: 100%; margin-top: 5px; }
+
+    </style>
+</head>
+<body>
+
+<header>ガスバーナー点火シミュレーション</header>
+
+<div id="message-box">
+    手順1：まずは「元栓」を開いてください。
+</div>
+
+<div id="visual-area">
+    <div id="match">🔥</div>
+    <div id="burner">
+        <div id="flame"></div>
+        <div id="tube"></div>
+        <div id="air-valve">空気</div>
+        <div id="mid-tube"></div>
+        <div id="gas-valve">ガス</div>
+        <div id="base"></div>
+    </div>
+</div>
+
+<div id="controls">
+    <div class="btn-row">
+        <button id="btn-main-gas" onclick="toggleMainGas()">元栓：閉</button>
+        <button id="btn-match" onclick="toggleMatch()">マッチを近づける</button>
+    </div>
+
+    <div class="control-group">
+        <div class="label-row">
+            <span>下：ガス調節ネジ</span>
+            <span id="gas-val-text">閉 (0%)</span>
+        </div>
+        <input type="range" id="gas-slider" min="0" max="100" value="0" oninput="updateValves()">
+    </div>
+
+    <div class="control-group">
+        <div class="label-row">
+            <span>上：空気調節ネジ</span>
+            <span id="air-val-text">閉 (0%)</span>
+        </div>
+        <input type="range" id="air-slider" min="0" max="100" value="0" oninput="updateValves()">
+    </div>
+
+    <button class="back-btn" onclick="location.href='index.html'">メニューへ戻る</button>
+</div>
+
+<script>
+    let isMainGasOpen = false;
+    let isMatchNear = false;
+    let isLit = false;
+
+    const msgBox = document.getElementById('message-box');
+    const flame = document.getElementById('flame');
+    const match = document.getElementById('match');
+    const gasSlider = document.getElementById('gas-slider');
+    const airSlider = document.getElementById('air-slider');
+    
+    function setMsg(text, isError = false) {
+        msgBox.innerHTML = text;
+        msgBox.style.color = isError ? "#721c24" : "#856404";
+        msgBox.style.background = isError ? "#f8d7da" : "#fff3cd";
+    }
+
+    function toggleMainGas() {
+        if (gasSlider.value > 0 || airSlider.value > 0) {
+            setMsg("⚠️ 危険！ネジが開いたまま元栓を操作しないでください。", true);
+            return;
+        }
+        isMainGasOpen = !isMainGasOpen;
+        const btn = document.getElementById('btn-main-gas');
+        btn.innerText = isMainGasOpen ? "元栓：開" : "元栓：閉";
+        btn.className = isMainGasOpen ? "active" : "";
+        
+        if (!isMainGasOpen) {
+            isLit = false;
+            updateFlame();
+            setMsg("火を消しました。ネジをすべて閉めてください。");
+        } else {
+            setMsg("手順2：マッチに火をつけて、下から近づけてください。");
+        }
+    }
+
+    function toggleMatch() {
+        if (!isMainGasOpen) {
+            setMsg("先に元栓を開いてください。");
+            return;
+        }
+        isMatchNear = !isMatchNear;
+        match.style.display = "block";
+        match.style.right = isMatchNear ? "calc(50% - 60px)" : "-100px";
+        
+        if (isMatchNear) {
+            setMsg("手順3：ガス調節ネジ（下）を少しずつ開いて点火します。");
+        } else {
+            if (!isLit) setMsg("マッチを離しました。");
+        }
+    }
+
+    function updateValves() {
+        let gasVal = parseInt(gasSlider.value);
+        let airVal = parseInt(airSlider.value);
+        
+        document.getElementById('gas-val-text').innerText = `開 (${gasVal}%)`;
+        document.getElementById('air-val-text').innerText = `開 (${airVal}%)`;
+
+        // エラーチェック：空気を先に開けようとした場合
+        if (airVal > 0 && gasVal === 0) {
+            setMsg("⚠️ 失敗！ガスより先に空気を開けてはいけません。", true);
+            airSlider.value = 0;
+            return;
+        }
+
+        // 点火の判定
+        if (gasVal > 0 && !isLit) {
+            if (isMainGasOpen && isMatchNear) {
+                isLit = true;
+                isMatchNear = false; // 点火したらマッチは自動で離れる
+                match.style.right = "-100px";
+                setMsg("✅ 点火成功！手順4：空気調節ネジ（上）を開いて青い炎にしてください。");
+            } else if (isMainGasOpen && !isMatchNear) {
+                setMsg("⚠️ ガス漏れ！マッチを近づけずにガスを開けないでください！", true);
+                gasSlider.value = 0; // 強制的に閉める
+                return;
+            }
+        }
+
+        // 消火の判定（ガスを0にした場合）
+        if (gasVal === 0 && isLit) {
+            isLit = false;
+            setMsg("火が消えました。");
+        }
+
+        updateFlame();
+    }
+
+    function updateFlame() {
+        if (!isLit) {
+            flame.style.height = "0px";
+            return;
+        }
+        
+        let gasVal = parseInt(gasSlider.value);
+        let airVal = parseInt(airSlider.value);
+
+        // ガスの量で炎の高さが決まる
+        let height = 40 + (gasVal * 0.8);
+        flame.style.height = height + "px";
+
+        // 空気の量で炎の色が変わる（オレンジ → 青）
+        // 空気がガスの量に近づくと青くなる
+        if (airVal === 0) {
+            flame.style.background = "#ff9d00"; // オレンジ
+            flame.style.boxShadow = "0 0 20px #ff9d00";
+        } else {
+            let ratio = airVal / gasVal;
+            if (ratio > 0.8 && ratio < 1.2) {
+                flame.style.background = "#3498db"; // 綺麗な青炎
+                flame.style.boxShadow = "0 0 20px #3498db";
+                setMsg("🎉 完璧な青い炎（完全燃焼）です！");
+            } else if (ratio >= 1.2) {
+                setMsg("⚠️ 空気が多すぎます！炎が浮き上がって（リフティング）消えそうです。", true);
+                flame.style.background = "#a2c2e6";
+            } else {
+                flame.style.background = "#e67e22"; // まだ不完全燃焼
+                setMsg("もう少し空気を入れて、青い炎にしましょう。");
+            }
+        }
+    }
+</script>
+
+</body>
+</html>
