@@ -61,10 +61,9 @@
         createCanvas(windowWidth, windowHeight);
         angleMode(DEGREES);
         calculatePositions();
-        resetSim(); // 初期位置セット
+        resetSim(); 
     }
 
-    // リセット機能（ボタンを押した時のみ全体リセット）
     window.resetSim = function() {
         isMainGasOpen = false; 
         isCockOpen = false;    
@@ -86,11 +85,9 @@
         mainX = width * 0.85;
         mainY = deskLevel - 70; 
         
-        // ★マッチ箱の配置: 中央の机の上に変更
-        matchBoxX = width / 2 - 35; // 箱の幅(70)の半分を引いて中央揃え
+        matchBoxX = width / 2 - 35; 
         matchBoxY = deskLevel - 40; 
         
-        // マッチの初期位置（箱の上）
         matchX = matchBoxX + 40;
         matchY = matchBoxY - 30;
     }
@@ -115,18 +112,15 @@
         push();
         translate(mainX, mainY);
         
-        // 配管
         fill(180); stroke(100); strokeWeight(2);
         rect(-10, 0, 20, 80); 
         rect(-40, 20, 30, 20); 
 
-        // バルブ本体
         fill(200); stroke(100);
         ellipse(0, -20, 50, 15); 
         rect(-25, -20, 50, 40); 
         ellipse(0, 20, 50, 15); 
 
-        // ツマミ
         fill(40); stroke(20);
         push();
         translate(0, -20);
@@ -157,18 +151,15 @@
         push();
         translate(burnerX, burnerY);
         
-        // 土台
         fill(100); stroke(60); strokeWeight(2);
         ellipse(0, 0, 110, 25); 
         rect(-55, -15, 110, 15); 
         fill(110);
         ellipse(0, -15, 110, 25); 
         
-        // 縦軸パイプ
         fill(180); stroke(100);
         rect(-10, -45, 20, 30);
 
-        // コック
         push();
         translate(10, -30);
         fill(200); stroke(100);
@@ -193,7 +184,6 @@
         drawGasScrew(-60, gasScrewAngle);
         drawAirScrew(-90, airScrewAngle);
 
-        // 煙突
         fill(210); stroke(120); strokeWeight(2);
         rect(-10, -200, 20, 90);
         fill(150);
@@ -266,7 +256,6 @@
             endShape(CLOSE);
         }
 
-        // リフティングの警告
         if (airScrewAngle > 80 && gasScrewAngle < 50) {
             setMessage("⚠️ 空気が多すぎます！炎が（リフティング）して消えそうです。", true);
         } else if (airScrewAngle > 0 && gasScrewAngle > 0) {
@@ -308,25 +297,21 @@
         pop();
     }
 
-    // --- 操作 ---
     function mousePressed() {
         lastMouseX = mouseX;
 
-        // 元栓タップ
         if (dist(mouseX, mouseY, mainX, mainY - 20) < 40) {
             isMainGasOpen = !isMainGasOpen;
             if (isFlameLit && !isMainGasOpen) isFlameLit = false; 
             updateMessage();
-            return false; // ★スマホでの二重反応（押した時・離した時）を防止
+            return false; 
         }
         
-        // 失敗判定: 元栓が閉なのにコックに触れた
         if (dist(mouseX, mouseY, burnerX + 38, burnerY - 30) < 30 && !isMainGasOpen) {
             setMessage("⚠️ 失敗！まずは元栓を開けてください。", true); 
-            return false; // ★リセットせず操作を止める
+            return false; 
         }
         
-        // コックタップ
         if (dist(mouseX, mouseY, burnerX + 38, burnerY - 30) < 30 && isMainGasOpen) {
             isCockOpen = !isCockOpen;
             if (isFlameLit && !isCockOpen) isFlameLit = false;
@@ -334,13 +319,11 @@
             return false; 
         }
 
-        // 失敗判定: コックが閉なのにマッチに触れた
         if ((dist(mouseX, mouseY, matchX, matchY) < 30 || dist(mouseX, mouseY, matchX, matchY - 40) < 30) && !isCockOpen) {
             setMessage("⚠️ 失敗！元栓とコックを両方開けてください。", true); 
             return false;
         }
         
-        // マッチドラッグ開始
         if ((dist(mouseX, mouseY, matchX, matchY) < 30 || dist(mouseX, mouseY, matchX, matchY - 40) < 30) && isCockOpen) {
             draggingSubject = "match";
             return false;
@@ -349,13 +332,11 @@
         let tx = mouseX - burnerX;
         let ty = mouseY - burnerY;
         
-        // 失敗判定: マッチに火がついていないのにネジに触れた
         if (ty > -110 && ty < -45 && abs(tx) < 40 && !isMatchLit && !isFlameLit) {
             setMessage("⚠️ 失敗！まずはマッチに火をつけてください。", true); 
             return false;
         }
         
-        // ネジドラッグ開始
         if (ty > -110 && ty < -70 && abs(tx) < 40 && (isMatchLit || isFlameLit)) {
             draggingSubject = "airScrew"; 
             return false;
@@ -385,12 +366,12 @@
         } else if (draggingSubject === "gasScrew") {
             let dx = mouseX - lastMouseX;
             gasScrewAngle = constrain(gasScrewAngle + dx * 0.8, 0, 100); 
+            checkIgnite(); // ★ ここを追加：ガスネジを回した瞬間にも点火判定を行う
             checkErrorGas();
         }
         
         lastMouseX = mouseX;
         
-        // ★ドラッグ中は画面のスクロールを止める
         if (draggingSubject) return false; 
     }
 
@@ -399,7 +380,6 @@
         
         if (isMatchLit && dist(matchX, matchY - 40, burnerX, burnerY - 200) > 100) {
             isMatchLit = false;
-            // マッチだけを元の位置に戻す（全体リセットはしない）
             matchX = matchBoxX + 40;
             matchY = matchBoxY - 30;
             if (!isFlameLit) setMessage("マッチの火が消えました。箱にこすってつけ直してください。");
@@ -422,7 +402,6 @@
             if (gasScrewAngle > 5) {
                 isFlameLit = true;
                 isMatchLit = false; 
-                // 点火成功でマッチを箱に戻す
                 matchX = matchBoxX + 40; 
                 matchY = matchBoxY - 30;
                 setMessage("✅ 点火成功！手順4：空気調節ネジ（上）を右ドラッグで開いてください。");
@@ -431,17 +410,18 @@
     }
 
     function checkErrorGas() {
-        if (gasScrewAngle > 5 && !isMatchLit && !isFlameLit && isMainGasOpen && isCockOpen) {
-             setMessage("⚠️ ガス漏れ！マッチの火を近づけずにガスを開けないでください！", true);
-             // 失敗判定: ガスネジだけを0に戻して操作を止める
-             gasScrewAngle = 0; 
+        if (gasScrewAngle > 5 && !isFlameLit && isMainGasOpen && isCockOpen) {
+             // ★ マッチの火がついていない、または遠い状態でガスを開けた場合に警告
+             if (!isMatchLit || dist(matchX, matchY - 40, burnerX, burnerY - 200) >= 50) {
+                 setMessage("⚠️ ガス漏れ！マッチの火を近づけてからガスを開けてください！", true);
+                 gasScrewAngle = 0; 
+             }
         }
     }
 
     function checkErrorAir() {
         if (airScrewAngle > 0 && gasScrewAngle === 0 && !isFlameLit) {
              setMessage("⚠️ 失敗！ガスより先に空気を開けてはいけません。", true);
-             // 失敗判定: 空気ネジだけを0に戻して操作を止める
              airScrewAngle = 0; 
         }
     }
