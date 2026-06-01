@@ -93,31 +93,30 @@
         let deskLevel = height - 140; 
         
         cellW = width * 0.8;
-        cellH = height * 0.4;
+        cellH = height * 0.38; // 水槽の縦幅を少しコンパクトに
         cellX = (width - cellW) / 2;
-        cellY = deskLevel - cellH - 30;
+        cellY = deskLevel - cellH - 35; // 少し上へ
 
-        electrodeW_init = 25;
+        electrodeW_init = width > 400 ? 30 : 25; // 画面幅で電極の太さを微調整
         electrodeH_init = cellH - 40;
-        anodeX = cellX + 50; // 陽極は左側
-        cathodeX = cellX + cellW - 50 - electrodeW_init; // 陰極は右側
+        anodeX = cellX + 40; 
+        cathodeX = cellX + cellW - 40 - electrodeW_init; 
         electrodeY = cellY + 20;
 
         powerW = 60; powerH = 40;
         powerX = width / 2 - powerW - 20;
-        powerY = height * 0.25;
+        powerY = height * 0.22; // 電源も少し上へ
 
         switchW = 50; switchH = 30;
         switchX = width / 2 + 20;
-        switchY = height * 0.25 + (powerH - switchH) / 2;
+        switchY = height * 0.22 + (powerH - switchH) / 2;
     }
 
     function initIons() {
-        // 電解液中にあらかじめ銅イオンと硫酸イオンを漂わせておく
         for (let i = 0; i < 15; i++) {
             particles.push({
                 x: random(cellX + 10, cellX + cellW - 10),
-                y: random(cellY + 10, cellY + cellH - 10),
+                y: random(cellY + 25, cellY + cellH - 10),
                 type: "cu2+",
                 vx: random(-0.5, 0.5),
                 vy: random(-0.5, 0.5),
@@ -125,7 +124,7 @@
             });
             particles.push({
                 x: random(cellX + 10, cellX + cellW - 10),
-                y: random(cellY + 10, cellY + cellH - 10),
+                y: random(cellY + 25, cellY + cellH - 10),
                 type: "so42-",
                 vx: random(-0.5, 0.5),
                 vy: random(-0.5, 0.5),
@@ -153,30 +152,31 @@
             updateSim();
         }
         drawParticles();
-        drawLabels(); // 文字を一番上に描画してかぶりを防ぐ
+        drawLabels(); // 文字かぶりを防ぐため最後に描画
         
         checkFinished();
     }
 
     function drawLegend() {
+        // スマホでも邪魔にならないように左上にコンパクトに配置
         fill(255, 255, 255, 220); stroke(150); strokeWeight(1);
-        rect(10, 80, 160, 115, 5);
+        rect(5, 75, 140, 100, 5);
         
-        fill(50); noStroke(); textAlign(LEFT); textSize(12); textStyle(BOLD);
-        text("【粒子の意味】", 15, 100);
+        fill(50); noStroke(); textAlign(LEFT); textSize(11); textStyle(BOLD);
+        text("【粒子の意味】", 10, 90);
         
-        fill(cuColor); ellipse(25, 120, particleSize);
-        fill(50); text("銅イオン (Cu²⁺)", 40, 124);
+        fill(cuColor); ellipse(18, 110, 8);
+        fill(50); text("銅イオン (Cu²⁺)", 30, 114);
         
-        fill(so4Color); stroke(150); strokeWeight(1); ellipse(25, 142, particleSize);
-        noStroke(); fill(50); text("硫酸イオン (SO₄²⁻)", 40, 146);
+        fill(so4Color); stroke(150); strokeWeight(1); ellipse(18, 128, 8);
+        noStroke(); fill(50); text("硫酸イオン (SO₄²⁻)", 30, 132);
         
-        fill(electronColor); noStroke(); ellipse(25, 164, particleSize);
-        fill(50); text("電子 (e⁻)", 40, 168);
+        fill(electronColor); noStroke(); ellipse(18, 146, 8);
+        fill(50); text("電子 (e⁻)", 30, 150);
 
-        fill(auColor); noStroke(); ellipse(20, 186, 6);
-        fill(agColor); ellipse(30, 186, 6);
-        fill(50); text("陽極泥 (Au, Ag等)", 40, 190);
+        fill(auColor); noStroke(); ellipse(15, 164, 5);
+        fill(agColor); ellipse(21, 164, 5);
+        fill(50); text("陽極泥 (Au, Ag等)", 30, 168);
     }
 
     function drawCell() {
@@ -186,11 +186,11 @@
         fill(173, 216, 230); // 硫酸銅水溶液
         rect(cellX + 5, cellY + 5, cellW - 10, cellH - 10, 3);
         
-        // 電解液の文字背景
+        // 電解液の文字を「上部」に配置（底の陽極泥を隠さないため）
         fill(255, 255, 255, 180); noStroke();
-        rect(cellX + cellW / 2 - 65, cellY + cellH - 22, 130, 18, 3);
-        fill(50); textSize(12); textStyle(BOLD); textAlign(CENTER);
-        text("電解液 (CuSO₄水溶液)", cellX + cellW / 2, cellY + cellH - 10);
+        rect(cellX + cellW / 2 - 65, cellY + 8, 130, 18, 3);
+        fill(50); textSize(11); textStyle(BOLD); textAlign(CENTER);
+        text("電解液 (CuSO₄水溶液)", cellX + cellW / 2, cellY + 21);
     }
 
     function drawElectrodes() {
@@ -204,46 +204,42 @@
         rect(cathodeX, electrodeY, cathodeW, electrodeH_init, 2);
     }
 
-    // テキストのかぶりを防ぐため、まとめて背景付きで描画
     function drawLabels() {
         noStroke();
 
-        // 電極の上のラベル背景と文字
+        // 電極の上のラベル（名前）
         fill(255, 255, 255, 200);
-        rect(anodeX + electrodeW_init / 2 - 40, electrodeY - 22, 80, 18, 3);
-        rect(cathodeX + electrodeW_init / 2 - 40, electrodeY - 22, 80, 18, 3);
+        rect(anodeX + electrodeW_init / 2 - 35, electrodeY - 20, 70, 16, 3);
+        rect(cathodeX + electrodeW_init / 2 - 35, electrodeY - 20, 70, 16, 3);
         
-        fill(50); textSize(13); textStyle(BOLD); textAlign(CENTER);
-        text("陽極 (粗銅)", anodeX + electrodeW_init / 2, electrodeY - 9);
-        text("陰極 (純銅)", cathodeX + electrodeW_init / 2, electrodeY - 9);
+        fill(50); textSize(12); textStyle(BOLD); textAlign(CENTER);
+        text("陽極 (粗銅)", anodeX + electrodeW_init / 2, electrodeY - 8);
+        text("陰極 (純銅)", cathodeX + electrodeW_init / 2, electrodeY - 8);
 
-        // 電極の下の化学式背景と文字
+        // ★化学式を水槽の外（底と机の隙間）に移動！これで陽極泥が隠れない
         fill(255, 255, 255, 200);
-        rect(anodeX + electrodeW_init / 2 - 50, electrodeY + electrodeH_init + 10, 100, 16, 3);
-        rect(cathodeX + electrodeW_init / 2 - 50, electrodeY + electrodeH_init + 10, 100, 16, 3);
+        rect(anodeX + electrodeW_init / 2 - 50, cellY + cellH + 5, 100, 16, 3);
+        rect(cathodeX + electrodeW_init / 2 - 50, cellY + cellH + 5, 100, 16, 3);
 
         fill(0); textSize(11); textStyle(NORMAL);
-        text("Cu → Cu²⁺ + 2e⁻", anodeX + electrodeW_init / 2, electrodeY + electrodeH_init + 22);
-        text("Cu²⁺ + 2e⁻ → Cu", cathodeX + electrodeW_init / 2, electrodeY + electrodeH_init + 22);
+        text("Cu → Cu²⁺ + 2e⁻", anodeX + electrodeW_init / 2, cellY + cellH + 17);
+        text("Cu²⁺ + 2e⁻ → Cu", cathodeX + electrodeW_init / 2, cellY + cellH + 17);
     }
 
     function drawCircuit() {
         stroke(100); strokeWeight(4); noFill();
         
-        // 導線（電子の通り道）
         line(anodeX + anodeW / 2, electrodeY, anodeX + anodeW / 2, powerY + powerH / 2);
         line(anodeX + anodeW / 2, powerY + powerH / 2, powerX, powerY + powerH / 2);
         line(cathodeX + cathodeW / 2, electrodeY, cathodeX + cathodeW / 2, powerY + powerH / 2);
         line(cathodeX + cathodeW / 2, powerY + powerH / 2, switchX + switchW, powerY + powerH / 2);
         line(powerX + powerW, powerY + powerH / 2, switchX, powerY + powerH / 2);
 
-        // 電源
         fill(40); stroke(20); strokeWeight(1);
         rect(powerX, powerY, powerW, powerH, 5);
         fill(255); noStroke(); textSize(16); textStyle(BOLD); textAlign(CENTER);
         text("電源", powerX + powerW / 2, powerY + powerH / 2 + 6);
         
-        // スイッチ
         stroke(100); strokeWeight(2);
         push();
         translate(switchX, switchY);
@@ -271,16 +267,13 @@
             } else {
                 noStroke();
             }
-            // 陽極泥は少し小さく描画
             let size = (p.type === "slime") ? particleSize * 0.6 : particleSize;
             ellipse(p.x, p.y, size);
         });
     }
 
     function updateSim() {
-        // 陽極から銅イオンと電子、陽極泥を生成
         if (drawCount % 40 === 0 && anodeW > 5) {
-            // 銅イオンが溶け出す
             let p = {
                 x: anodeX + anodeW,
                 y: random(electrodeY + 10, electrodeY + electrodeH_init - 10),
@@ -291,12 +284,10 @@
             };
             particles.push(p);
             
-            // 電子（陽極から出て陰極へ向かう）
             let e1 = { x: anodeX + anodeW/2, y: electrodeY, type: "electron", vx: 0, vy: -3, color: electronColor, stage: 1 };
             let e2 = { x: anodeX + anodeW/2, y: electrodeY + 15, type: "electron", vx: 0, vy: -3, color: electronColor, stage: 1 };
             particles.push(e1, e2);
             
-            // 陽極泥（AuやAgなど）の沈殿
             if (random() < 0.3) {
                 let sColor = random() > 0.5 ? auColor : agColor;
                 let slime = {
@@ -310,65 +301,55 @@
                 particles.push(slime);
             }
 
-            // 陽極が少し細くなる
             anodeW -= 0.2;
         }
         
-        // 粒子の移動と判定（逆順ループ）
         for (let i = particles.length - 1; i >= 0; i--) {
             let p = particles[i];
             
             if (p.type === "electron") {
-                // 電子の導線上の移動（右側の陰極へしっかり向かう）
-                if (p.stage === 1) { // 陽極(左)から上へ
+                if (p.stage === 1) { 
                     p.y += p.vy;
                     if (p.y <= powerY + powerH / 2) { 
-                        p.y = powerY + powerH / 2; 
-                        p.stage = 2; 
-                        p.vx = 4; // 右へ進む
-                        p.vy = 0; 
+                        p.y = powerY + powerH / 2; p.stage = 2; p.vx = 4; p.vy = 0; 
                     }
-                } else if (p.stage === 2) { // 導線を右（電源・スイッチを通過して陰極方向）へ
+                } else if (p.stage === 2) { 
                     p.x += p.vx;
                     if (p.x >= cathodeX + cathodeW / 2) { 
-                        p.x = cathodeX + cathodeW / 2; 
-                        p.stage = 3; 
-                        p.vx = 0; 
-                        p.vy = 3; // 下へ降りる
+                        p.x = cathodeX + cathodeW / 2; p.stage = 3; p.vx = 0; p.vy = 3; 
                     }
-                } else if (p.stage === 3) { // 陰極へ降りる
+                } else if (p.stage === 3) { 
                     p.y += p.vy;
                     if (p.y >= electrodeY + 10) { 
-                        particles.splice(i, 1); // 陰極に到達して消費
+                        particles.splice(i, 1); 
                         continue;
                     }
                 }
             } else if (p.type === "slime") {
-                // 陽極泥の落下
                 p.y += p.vy;
                 if (p.y >= cellY + cellH - 5) {
-                    p.vy = 0; // 底にたまる
+                    p.y = cellY + cellH - 5; // 底でしっかり止まる
+                    p.vy = 0; 
                 }
             } else {
-                // イオンの移動
                 p.x += p.vx;
                 p.y += p.vy;
                 
-                // 電解液の壁でバウンド
-                if (p.y >= cellY + cellH - 10 || p.y <= cellY + 5) p.vy *= -1;
-                if (p.x <= cellX + 5) p.vx *= -1;
+                // ★ 硫酸イオンなどが絶対に枠外に飛ばないための強力な壁判定
+                if (p.y >= cellY + cellH - 10) { p.y = cellY + cellH - 10; p.vy *= -1; }
+                if (p.y <= cellY + 5) { p.y = cellY + 5; p.vy *= -1; }
+                if (p.x <= cellX + 5) { p.x = cellX + 5; p.vx *= -1; }
+                if (p.x >= cellX + cellW - 5) { p.x = cellX + cellW - 5; p.vx *= -1; }
 
                 if (p.type === "cu2+") {
-                    p.x += 0.5; // 電源ON時は陰極（右）へ引かれる
-                    
+                    p.x += 0.5; 
                     if (p.x >= cathodeX && p.y >= electrodeY && p.y <= electrodeY + electrodeH_init) {
                         cathodeW += 0.2;
                         particles.splice(i, 1);
                         continue;
                     }
                 } else if (p.type === "so42-") {
-                    p.x -= 0.2; // 硫酸イオンは陽極（左）へ少し引かれる
-                    if (p.x >= cathodeX) p.vx *= -1;
+                    p.x -= 0.2; 
                 }
             }
         }
