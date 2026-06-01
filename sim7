@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>銅の製錬（電気分解）シミュレーター</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background: #fdfdfd; font-family: 'Hiragino Sans', sans-serif; touch-action: none; }
+        
+        #message-area {
+            position: absolute; top: 0; width: 100%; background: rgba(255, 255, 255, 0.95);
+            color: #333; padding: 15px; text-align: center; font-size: 15px; font-weight: bold;
+            border-bottom: 2px solid #ddd; box-sizing: border-box; z-index: 10;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); min-height: 70px;
+        }
+
+        .btn-container {
+            position: absolute; bottom: 20px; width: 100%;
+            display: flex; justify-content: center; gap: 15px; z-index: 100;
+        }
+
+        .btn {
+            background: #2c3e50; color: white; border: none; padding: 12px 20px;
+            border-radius: 20px; font-weight: bold; cursor: pointer; text-decoration: none;
+            font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        #reset-btn { background: #e74c3c; }
+    </style>
+</head>
+<body>
+
+<div id="message-area">
+    手順：スイッチをタップして電気分解を開始してください。<br>陽極（粗銅）、陰極（純銅）、電解液（$CuSO_4$水溶液）。
+</div>
+
+<div class="btn-container">
+    <button class="btn" id="reset-btn" onclick="resetSim()">リセット</button>
+    <a href="index.html" class="btn">メニューへ戻る</a>
+</div>
+
+<script>
+    // --- 状態変数 ---
+    let isRunning = false; 
+    let particles = []; 
+    let drawCount = 0; 
+    let draggingSubject = null; 
+
+    // --- 器具のパラメータ ---
+    let cellX, cellY, cellW, cellH; // 電解槽
+    let anodeX, cathodeX, electrodeY, electrodeW_init, electrodeH_init; // 電極
+    let anodeW, cathodeW; // 現在の電極の厚さ
+    let powerX, powerY, powerW, powerH; // 電源
+    let switchX, switchY, switchW, switchH; // スイッチ
+    let anodeSlimeAreaH = 30; // 陽極泥エリアの高さ
+
+    // --- 粒子のパラメータ ---
+    let particleSize = 10;
+    let cuColor, feColor, znColor, auColor, agColor, electronColor;
+
+    // --- 失敗・解説判定用 ---
+    let isFinished = false;
+
+    function setup() {
+        createCanvas(windowWidth, windowHeight);
+        angleMode(DEGREES);
+        
+        cuColor = color(150, 100, 50); // 銅
+        feColor = color(100, 100, 110); // 鉄
+        znColor = color(180); // 亜鉛
+        auColor = color(220, 180, 50); // 金
+        agColor = color(200); // 銀
+        electronColor = color(255, 255, 0); // 電子
+
+        calculatePositions();
+        resetSim(); 
+    }
+
+    // リセット機能（全体リセット）
+    window.resetSim = function() {
+        isRunning = false; 
+        particles = []; 
+        drawCount = 0; 
+        draggingSubject = null; 
+        isFinished = false;
+        
+        anodeW = electrodeW_init; 
+        cathodeW = electrodeW_init; 
+
+        calculatePositions(); 
+        updateMessage();
+    };
+
+    function calculatePositions() {
+        // スマホ縦画面を想定した配置
+        let deskLevel = height - 140; 
+        
+        cellW = width * 0.8;
+        cellH = height * 0.4;
+        cellX = (width - cellW) / 2;
+        cellY = deskLevel - cellH - 30;
+
+        electrodeW_init = 25;
+        electrodeH_init = cellH - 40;
+        anodeX = cellX + 50;
+        cathodeX = cellX + cellW - 50 - electrodeW_init;
+        electrodeY = cellY + 20;
+
+        // 電源とスイッチ（上部）
+        powerW = 60; powerH = 40;
+        powerX = width / 2 - powerW - 20;
+        powerY = height * 0.25;
+
+        switchW = 50; switchH = 30;
+        switchX = width / 2 + 20;
+        switchY = height * 0.25 + (powerH - switchH) / 2;
+    }
+
+    function draw() {
+        background(250); 
+        drawCount++;
+
+        // 実験台（机）
+        fill(220, 220, 225); noStroke();
+        rect(0, height - 140, width, 140);
+        stroke(180); strokeWeight(2);
+        line(0, height - 140, width, height - 140);
+
+        drawCell();
+        drawElectrodes();
+        drawCircuit();
+        
+        if (isRunning) {
+            updateSim();
+        }
+        drawParticles();
+        
+        checkFinished();
+    }
+
+    function drawCell() {
+        // 電解槽（水槽）
+        fill(240, 248, 255); stroke(100); strokeWeight(2);
+        rect(cellX, cellY, cellW, cellH, 5);
+        
+        // 電解液
+        fill(173, 216, 230); // 硫酸銅水溶液（青）
+        rect(cellX + 5, cellY + 5, cellW - 10, cellH - 10, 3);
+        
+        // 電解液の文字
+        fill(50); noStroke(); textSize(12); textStyle(BOLD); textAlign(CENTER);
+        text("電解液 ($CuSO_4$水溶液)", cellX + cellW / 2, cellY + cellH - 10);
+
+        // 陽極泥エリア
+        fill(100, 50, 20, 50); // 茶色い沈殿
+        rect(anodeX - electrodeW_init / 2, cellY + cellH - anodeSlimeAreaH, electrodeW_init * 2, anodeSlimeAreaH - 5, 2);
+    }
+
+    function drawElectrodes() {
+        stroke(50); strokeWeight(2);
+        // 陽極（粗銅・茶色・細くなる）
+        fill(180, 130, 80); 
+        rect(anodeX, electrodeY, anodeW, electrodeH_init, 2);
+        
+        // 陰極（純銅・明るい茶色・厚くなる）
+        fill(210, 180, 130); 
+        rect(cathodeX, electrodeY, cathodeW, electrodeH_init, 2);
+        
+        // 名前表示
+        fill(50); noStroke(); textSize(14); textStyle(BOLD); textAlign(CENTER);
+        text("陽極 (粗銅)", anodeX + electrodeW_init / 2, electrodeY - 10);
+        text("陰極 (純銅)", cathodeX + electrodeW_init / 2, electrodeY - 10);
+
+        // 反応式
+        noStroke(); textSize(11); textStyle(NORMAL);
+        fill(0); 
+        text("$Cu \\rightarrow Cu^{2+} + 2e^-$", anodeX + electrodeW_init / 2, electrodeY + electrodeH_init + 20);
+        text("$Cu^{2+} + 2e^- \\rightarrow Cu$", cathodeX + electrodeW_init / 2, electrodeY + electrodeH_init + 20);
+    }
+
+    function drawCircuit() {
+        stroke(100); strokeWeight(4); noFill();
+        
+        // 導線
+        // 陽極から
+        line(anodeX + anodeW / 2, electrodeY, anodeX + anodeW / 2, powerY + powerH / 2);
+        line(anodeX + anodeW / 2, powerY + powerH / 2, powerX, powerY + powerH / 2);
+        // 陰極から
+        line(cathodeX + cathodeW / 2, electrodeY, cathodeX + cathodeW / 2, powerY + powerH / 2);
+        line(cathodeX + cathodeW / 2, powerY + powerH / 2, switchX + switchW, powerY + powerH / 2);
+        // 電源とスイッチ間
+        line(powerX + powerW, powerY + powerH / 2, switchX, powerY + powerH / 2);
+
+        // 電源（電池）
+        fill(40); stroke(20); strokeWeight(1);
+        rect(powerX, powerY, powerW, powerH, 5);
+        fill(255); noStroke(); textSize(16); textStyle(BOLD); textAlign(CENTER);
+        text("電源", powerX + powerW / 2, powerY + powerH / 2 + 6);
+        
+        // スイッチ
+        stroke(100); strokeWeight(2);
+        push();
+        translate(switchX, switchY);
+        if (isRunning) {
+            line(0, switchH / 2, switchW, switchH / 2); // 閉
+            fill(100);
+            text("ON", switchW / 2, switchH / 2 + 15);
+        } else {
+            line(0, switchH / 2, switchW / 2, 0); // 開
+            line(switchW / 2, 0, switchW, switchH / 2);
+            fill(100);
+            text("OFF", switchW / 2, switchH / 2 + 15);
+        }
+        pop();
+        
+        // 極性
+        fill(200, 50, 50); textStyle(BOLD); textSize(18); text("+", powerX + 5, powerY + powerH / 2 + 6);
+        fill(50, 50, 200); text("-", powerX + powerW - 10, powerY + powerH / 2 + 6);
+    }
+
+    function drawParticles() {
+        noStroke();
+        particles.forEach(p => {
+            fill(p.color);
+            ellipse(p.x, p.y, particleSize);
+        });
+    }
+
+    function updateSim() {
+        // 一定カウントごとに陽極からイオンと電子を生成
+        if (drawCount % 30 === 0 && anodeW > 5) {
+            // Cu2+ と 不純物イオン (Fe2+, Zn2+)
+            let typeCu = random() > 0.3; // 銅が溶け出す確率
+            let pColor = typeCu ? cuColor : (random() > 0.5 ? feColor : znColor);
+            
+            let p = {
+                x: anodeX + anodeW,
+                y: random(electrodeY + 10, electrodeY + electrodeH_init - 10),
+                type: typeCu ? "cu2+" : "impurityIon",
+                vx: random(1, 2),
+                vy: random(-0.5, 0.5),
+                color: pColor
+            };
+            particles.push(p);
+            
+            // 電子 (2e-)
+            let e1 = { x: anodeX, y: p.y, type: "electron", vx: 0, vy: -5, color: electronColor, stage: 1 };
+            particles.push(e1);
+            let e2 = { x: anodeX, y: p.y - 10, type: "electron", vx: 0, vy: -5, color: electronColor, stage: 1 };
+            particles.push(e2);
+            
+            // 陽極が少し細くなる
+            anodeW -= 0.2;
+            
+            // 不純物の沈殿 (Au, Ag)
+            if (random() < 0.1) {
+                let sColor = random() > 0.5 ? auColor : agColor;
+                let s = {
+                    x: anodeX + anodeW / 2,
+                    y: electrodeY + electrodeH_init,
+                    type: "impuritySlime",
+                    vx: 0,
+                    vy: 2,
+                    color: sColor
+                };
+                particles.push(s);
+            }
+        }
+        
+        // 粒子の移動と判定
+        particles.forEach((p, index) => {
+            if (p.type === "electron") {
+                // 電子の移動路（ステージ制）
+                if (p.stage === 1) { // 陽極を上へ
+                    p.y += p.vy;
+                    if (p.y <= powerY + powerH / 2) { p.y = powerY + powerH / 2; p.stage = 2; p.vx = -5; }
+                } else if (p.stage === 2) { // 電源へ
+                    p.x += p.vx;
+                    if (p.x <= powerX) { particles.splice(index, 1); return; } // 電源で消滅
+                }
+            } else {
+                p.x += p.vx;
+                p.y += p.vy;
+                
+                // Cu2+ が陰極に到達
+                if (p.type === "cu2+" && p.x >= cathodeX && 
+                    p.y >= electrodeY && p.y <= electrodeY + electrodeH_init) {
+                    
+                    // 析出（粒子を消滅、陰極を厚く）
+                    particles.splice(index, 1);
+                    cathodeW += 0.2;
+                    return;
+                }
+                
+                // 不純物イオンは漂う
+                if (p.type === "impurityIon") {
+                    if (p.x >= cathodeX || p.x <= cellX + 5) p.vx *= -1;
+                    if (p.y >= cellY + cellH - 10 || p.y <= cellY + 5) p.vy *= -1;
+                }
+                
+                // 陽極泥は沈殿
+                if (p.type === "impuritySlime") {
+                    if (p.y >= cellY + cellH - 10) { p.vy = 0; p.vx = 0; } // 底に溜まる
+                }
+            }
+        });
+    }
+
+    function checkFinished() {
+        if (anodeW <= 5 && !isFinished) {
+            isFinished = true;
+            setMessage("粗銅の電気分解が完了しました。陰極には純銅、電解槽底には陽極泥（Au, Agなど）が残ります。<br>電解液にはFe, Znイオン。リセットでやり直してください。");
+        }
+    }
+
+    function updateMessage() {
+        if (!isRunning) {
+            setMessage("手順：スイッチをタップして電気分解を開始してください。<br>陽極（粗銅）、陰極（純銅）、電解液（$CuSO_4$水溶液）。");
+        } else {
+            setMessage("電気分解中。粗銅が溶け出します。$Cu \\rightarrow Cu^{2+} + 2e^-$。<br>$Cu^{2+}$ は陰極へ、電子は電源へ。不純物は沈殿するかイオンになります。");
+        }
+    }
+
+    function setMessage(text, isError = false) {
+        let msgArea = document.getElementById('message-area');
+        msgArea.innerHTML = text;
+        msgArea.style.background = isError ? "rgba(255, 200, 200, 0.95)" : "rgba(255, 255, 255, 0.95)";
+        msgArea.style.color = isError ? "#721c24" : "#333";
+    }
+
+    // ★スマホ用修正：ボタン要素のタッチはキャンバスで弾かないようにする
+    function mousePressed(event) {
+        if (event && event.target && event.target.tagName !== 'CANVAS') {
+            return; // キャンバス以外の要素（ボタン等）を押した時は標準の動作をさせる
+        }
+
+        if (isFinished) return;
+
+        // スイッチタップ判定
+        if (dist(mouseX, mouseY, switchX + switchW / 2, switchY + switchH / 2) < 30) {
+            isRunning = !isRunning;
+            updateMessage();
+            return false; 
+        }
+    }
+
+    function windowResized() {
+        resizeCanvas(windowWidth, windowHeight);
+        calculatePositions(); 
+    }
+</script>
+
+</body>
+</html>
